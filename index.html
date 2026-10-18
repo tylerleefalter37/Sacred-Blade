@@ -1,0 +1,3344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>銘刀鍛冶録 — Sengoku Sacred Bladebound Tycoon</title>
+  <!-- Full-Screen iOS PWA & Mobile Viewport Guardrails -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sengoku Blade">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#16120d">
+
+  <style>
+    /* -------------------------------------------------------------
+       DESIGN TOKENS & RESET (Sengoku Hinoki Wood, Crimson & Gold)
+       ------------------------------------------------------------- */
+    :root {
+      --bg-wood-dark: #120e0a;
+      --bg-wood-panel: #1b1510;
+      --bg-wood-card: #251e17;
+      --bg-wood-hover: #322820;
+      --border-hinoki: #3d3125;
+      --border-gold: #b45309;
+      --crimson-base: #881313;
+      --crimson-glow: #b91c1c;
+      --crimson-bright: #ef4444;
+      --gold-dark: #92400e;
+      --gold-base: #d97706;
+      --gold-bright: #fbbf24;
+      --gold-light: #fef08a;
+      --iron-dark: #1e293b;
+      --iron-mid: #334155;
+      --iron-light: #94a3b8;
+      --text-bright: #f5f0e6;
+      --text-muted: #a39585;
+      --text-dim: #706355;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+      background-color: var(--bg-wood-dark);
+      color: var(--text-bright);
+      line-height: 1.4;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      padding-top: var(--safe-top);
+      padding-bottom: calc(var(--safe-bottom) + 65px);
+      background-image: 
+        radial-gradient(ellipse at 50% 0%, rgba(136, 19, 19, 0.22) 0%, transparent 60%),
+        linear-gradient(180deg, #16120d 0%, #0d0a07 100%);
+    }
+
+    /* Enforce touch ergonomics and no auto-zoom on iOS */
+    button, input, select, textarea, .clickable {
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
+      font-size: 16px; /* Safari 16px auto-zoom guard */
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      outline: none;
+      background: none;
+      color: inherit;
+      font-family: inherit;
+      transition: transform 0.08s ease, filter 0.15s ease, background-color 0.15s ease;
+    }
+    button:active {
+      transform: scale(0.97);
+    }
+
+    /* Monospace Utility */
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    /* -------------------------------------------------------------
+       APP HEADER & LEDGER TICK BAR
+       ------------------------------------------------------------- */
+    header.smithy-header {
+      background: rgba(22, 18, 13, 0.96);
+      border-bottom: 2px solid var(--border-hinoki);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+    }
+
+    .top-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 14px;
+      border-bottom: 1px solid rgba(61, 49, 37, 0.5);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mon-crest {
+      width: 26px;
+      height: 26px;
+      fill: var(--gold-bright);
+      filter: drop-shadow(0 0 6px rgba(217, 119, 6, 0.5));
+    }
+
+    .smithy-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #d97706 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-chip {
+      background: var(--bg-wood-card);
+      border: 1px solid var(--border-hinoki);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-bright);
+    }
+    .btn-chip:hover {
+      background: var(--bg-wood-hover);
+      border-color: var(--gold-base);
+    }
+    .btn-chip.dev-toggle {
+      border-color: #8b5cf6;
+      color: #c4b5fd;
+    }
+
+    /* Ledger Ticker */
+    .ledger-ribbon {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      padding: 6px 12px;
+      gap: 6px;
+      background: #15100b;
+      font-size: 12px;
+      border-bottom: 1px solid var(--border-hinoki);
+      overflow-x: auto;
+    }
+
+    .ledger-pill {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: rgba(37, 30, 23, 0.6);
+      padding: 3px 6px;
+      border-radius: 5px;
+      border: 1px solid rgba(61, 49, 37, 0.7);
+    }
+    .ledger-pill .lbl {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .ledger-pill .val {
+      font-weight: 700;
+      color: var(--gold-bright);
+    }
+
+    /* -------------------------------------------------------------
+       COLLAPSIBLE DEV DRAWER (GOD MODE)
+       ------------------------------------------------------------- */
+    #dev-drawer {
+      display: none;
+      background: #0f0b08;
+      border-bottom: 2px solid #8b5cf6;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: #c4b5fd;
+      animation: slideDown 0.2s ease-out;
+    }
+    #dev-drawer.open {
+      display: block;
+    }
+    .dev-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .btn-dev {
+      background: #1e1528;
+      border: 1px solid #7c3aed;
+      color: #ede9fe;
+      padding: 6px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .btn-dev:hover {
+      background: #2e1d42;
+      border-color: #a78bfa;
+    }
+
+    /* -------------------------------------------------------------
+       MAIN VIEWPORT CONTAINER & TABS
+       ------------------------------------------------------------- */
+    main.smithy-main {
+      flex: 1;
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 14px;
+    }
+
+    .view-panel {
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+    .view-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideDown {
+      from { opacity: 0; max-height: 0; }
+      to { opacity: 1; max-height: 400px; }
+    }
+
+    /* -------------------------------------------------------------
+       BOTTOM PWA DOCK / TAB BAR
+       ------------------------------------------------------------- */
+    nav.bottom-dock {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(56px + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: rgba(18, 14, 10, 0.98);
+      border-top: 2px solid var(--border-hinoki);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 60;
+      box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.7);
+    }
+
+    .dock-tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 52px;
+      color: var(--text-muted);
+      font-size: 11px;
+      gap: 3px;
+      transition: color 0.15s ease;
+    }
+    .dock-tab svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+    .dock-tab.active {
+      color: var(--gold-bright);
+      font-weight: 700;
+    }
+    .dock-tab.active svg {
+      filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.6));
+    }
+
+    /* -------------------------------------------------------------
+       REUSABLE CARDS, BUTTONS & GRIDS
+       ------------------------------------------------------------- */
+    .card-panel {
+      background: var(--bg-wood-card);
+      border: 1px solid var(--border-hinoki);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    }
+    .card-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px solid rgba(61, 49, 37, 0.6);
+      padding-bottom: 8px;
+    }
+    .panel-title {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--gold-bright);
+    }
+
+    .btn-sengoku {
+      background: linear-gradient(180deg, #b45309 0%, #78350f 100%);
+      border: 1px solid #f59e0b;
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 7px;
+      font-weight: 700;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    }
+    .btn-sengoku:hover {
+      background: linear-gradient(180deg, #d97706 0%, #92400e 100%);
+      filter: brightness(1.1);
+    }
+    .btn-sengoku.crimson {
+      background: linear-gradient(180deg, #b91c1c 0%, #7f1d1d 100%);
+      border-color: #ef4444;
+    }
+    .btn-sengoku.crimson:hover {
+      background: linear-gradient(180deg, #dc2626 0%, #991b1b 100%);
+    }
+    .btn-sengoku.iron {
+      background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+      border-color: #64748b;
+    }
+    .btn-sengoku.sm {
+      padding: 4px 9px;
+      font-size: 13px;
+      border-radius: 5px;
+    }
+    .btn-sengoku.full {
+      width: 100%;
+    }
+
+    /* Badges & Pills */
+    .badge-tier {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .t1 { background: #334155; color: #cbd5e1; }
+    .t2 { background: #1e3a5f; color: #93c5fd; }
+    .t3 { background: #064e3b; color: #6ee7b7; }
+    .t4 { background: #14532d; color: #86efac; }
+    .t5 { background: #713f12; color: #fde047; }
+    .t6 { background: #854d0e; color: #fef08a; }
+    .t7 { background: #7c2d12; color: #fdba74; }
+    .t8 { background: #701a75; color: #f472b6; }
+    .t9 { background: #831843; color: #f9a8d4; }
+    .t10 { background: linear-gradient(135deg, #b91c1c 0%, #fbbf24 100%); color: #000; font-weight: 900; animation: apexPulse 2s infinite; }
+
+    @keyframes apexPulse {
+      0%, 100% { box-shadow: 0 0 6px rgba(239, 68, 68, 0.8); }
+      50% { box-shadow: 0 0 16px rgba(251, 191, 36, 1); }
+    }
+
+    .badge-trait {
+      display: inline-block;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid var(--border-hinoki);
+      color: #cbd5e1;
+      margin: 2px 2px 2px 0;
+    }
+    .badge-trait.homo {
+      border-color: var(--crimson-bright);
+      background: rgba(136, 19, 19, 0.4);
+      color: #fca5a5;
+    }
+    .badge-trait.super {
+      border-color: var(--gold-bright);
+      background: rgba(217, 119, 6, 0.4);
+      color: var(--gold-light);
+      font-weight: 700;
+    }
+    .badge-trait.grail {
+      border-color: #ec4899;
+      background: linear-gradient(90deg, rgba(190, 24, 93, 0.5), rgba(124, 58, 237, 0.5));
+      color: #fff;
+      font-weight: 900;
+      animation: grailGlow 1.5s infinite alternate;
+    }
+    @keyframes grailGlow {
+      from { box-shadow: 0 0 4px #ec4899; }
+      to { box-shadow: 0 0 12px #a855f7; }
+    }
+
+    /* -------------------------------------------------------------
+       IV METRIC BARS (1-100 & F to SSS+)
+       ------------------------------------------------------------- */
+    .iv-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+      margin: 8px 0;
+    }
+    .iv-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 11px;
+    }
+    .iv-lbl {
+      color: var(--text-muted);
+      font-size: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .iv-track {
+      height: 6px;
+      background: #120e0a;
+      border-radius: 3px;
+      overflow: hidden;
+      border: 1px solid #33271d;
+    }
+    .iv-fill {
+      height: 100%;
+      background: var(--gold-base);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .grade-F { color: #94a3b8; }
+    .grade-D { color: #38bdf8; }
+    .grade-C { color: #4ade80; }
+    .grade-B { color: #facc15; }
+    .grade-A { color: #fb923c; }
+    .grade-S { color: #f43f5e; font-weight: 700; }
+    .grade-SS { color: #c084fc; font-weight: 800; }
+    .grade-SSS { color: #e879f9; font-weight: 900; text-shadow: 0 0 4px #e879f9; }
+
+    /* -------------------------------------------------------------
+       ROSTER VAULT & MONOSPACE DOSSIER
+       ------------------------------------------------------------- */
+    .vault-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .vault-select {
+      background: var(--bg-wood-dark);
+      border: 1px solid var(--border-hinoki);
+      color: var(--text-bright);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    .blade-card {
+      background: var(--bg-wood-panel);
+      border: 1px solid var(--border-hinoki);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      position: relative;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+    .blade-card:hover {
+      border-color: var(--gold-base);
+      background: var(--bg-wood-card);
+    }
+    .blade-card.equipped {
+      border-color: var(--gold-bright);
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+    }
+    .blade-card.equipped::after {
+      content: "EQUIPPED DUEL BLADE";
+      position: absolute;
+      top: -9px;
+      right: 12px;
+      background: var(--gold-bright);
+      color: #000;
+      font-size: 9px;
+      font-weight: 900;
+      padding: 1px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .blade-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .blade-name-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .blade-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .blade-val {
+      text-align: right;
+    }
+    .blade-val .amt {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--gold-bright);
+    }
+
+    .blade-actions-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(61, 49, 37, 0.6);
+    }
+
+    /* -------------------------------------------------------------
+       CRUCIBLE FUSION (5-SLOT BREEDING LAIR)
+       ------------------------------------------------------------- */
+    .crucible-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .crucible-slot-card {
+      background: var(--bg-wood-panel);
+      border: 1px solid var(--border-hinoki);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 180px;
+    }
+    .crucible-slot-card.in-fusion {
+      border-color: #f97316;
+      background: linear-gradient(180deg, rgba(37, 30, 23, 0.9) 0%, rgba(136, 19, 19, 0.25) 100%);
+    }
+
+    .forge-meter-bar {
+      height: 8px;
+      background: #110d0a;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid #3d3125;
+      margin: 8px 0;
+    }
+    .forge-meter-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ea580c, #facc15);
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+
+    .punnett-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 12px;
+    }
+    .punnett-table th, .punnett-table td {
+      border: 1px solid var(--border-hinoki);
+      padding: 5px 8px;
+      text-align: left;
+    }
+    .punnett-table th {
+      background: #1c150e;
+      color: var(--text-muted);
+    }
+    .punnett-table tr:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    /* -------------------------------------------------------------
+       DUEL THEATER (LIGHTWEIGHT DOM COMBAT)
+       ------------------------------------------------------------- */
+    .combat-arena {
+      background: #0d0a08;
+      border: 2px solid var(--border-hinoki);
+      border-radius: 10px;
+      padding: 14px;
+      position: relative;
+      overflow: hidden;
+      min-height: 380px;
+    }
+
+    .combat-fighters-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .fighter-box {
+      background: var(--bg-wood-panel);
+      border: 1px solid var(--border-hinoki);
+      border-radius: 8px;
+      padding: 10px;
+      position: relative;
+      transition: transform 0.08s ease;
+    }
+    .fighter-box.shake {
+      animation: fighterShake 0.25s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    .fighter-box.hit-flash {
+      border-color: #ef4444;
+      background: rgba(185, 28, 28, 0.4);
+    }
+    .fighter-box.parry-spark {
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.3);
+    }
+
+    @keyframes fighterShake {
+      10%, 90% { transform: translate3d(-3px, 0, 0); }
+      20%, 80% { transform: translate3d(5px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+      40%, 60% { transform: translate3d(6px, 0, 0); }
+    }
+
+    .gauge-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+    .gauge-track {
+      height: 10px;
+      background: #110d0a;
+      border-radius: 5px;
+      border: 1px solid #33271d;
+      overflow: hidden;
+    }
+    .gauge-fill-hp {
+      height: 100%;
+      background: linear-gradient(90deg, #dc2626, #16a34a);
+      transition: width 0.2s ease;
+    }
+    .gauge-fill-sta {
+      height: 100%;
+      background: linear-gradient(90deg, #0284c7, #38bdf8);
+      transition: width 0.2s ease;
+    }
+
+    .combat-stances-row {
+      display: flex;
+      gap: 6px;
+      margin: 10px 0;
+    }
+    .btn-stance {
+      flex: 1;
+      padding: 6px 4px;
+      background: var(--bg-wood-card);
+      border: 1px solid var(--border-hinoki);
+      border-radius: 6px;
+      font-size: 12px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .btn-stance.active {
+      border-color: var(--gold-bright);
+      color: var(--gold-light);
+      background: #3b2c1f;
+      font-weight: 700;
+    }
+
+    .combat-log-console {
+      height: 130px;
+      background: #090604;
+      border: 1px solid #2a2016;
+      border-radius: 6px;
+      padding: 8px;
+      overflow-y: auto;
+      font-size: 12px;
+      color: #d1d5db;
+      line-height: 1.5;
+    }
+    .combat-log-entry {
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      padding: 2px 0;
+    }
+    .combat-log-entry.crit { color: #f43f5e; font-weight: 700; }
+    .combat-log-entry.parry { color: #38bdf8; font-weight: 700; }
+    .combat-log-entry.victory { color: #fbbf24; font-weight: 900; }
+
+    /* -------------------------------------------------------------
+       AUCTION HOUSE (5-LANE CONSIGNMENT)
+       ------------------------------------------------------------- */
+    .auction-lanes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 12px;
+    }
+    .lane-card {
+      background: var(--bg-wood-panel);
+      border: 1px solid var(--border-hinoki);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 220px;
+    }
+    .lane-card.active-lane {
+      border-color: var(--gold-base);
+    }
+    .syndicate-pill {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #1e1710;
+      border: 1px solid #4a3826;
+      margin-top: 4px;
+      display: inline-block;
+    }
+
+    /* -------------------------------------------------------------
+       DISTRESSED CLEARANCE (10-SEC TIMED ROOST)
+       ------------------------------------------------------------- */
+    .clearance-banner {
+      background: linear-gradient(90deg, #7f1d1d, #450a0a);
+      border: 1px solid #ef4444;
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .clearance-timer-num {
+      font-size: 24px;
+      font-weight: 900;
+      color: #fef08a;
+      letter-spacing: 1px;
+    }
+    .clearance-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 10px;
+    }
+
+    /* -------------------------------------------------------------
+       WONDER TRADE (GLOBAL MYSTERY TRADE)
+       ------------------------------------------------------------- */
+    .radar-container {
+      width: 140px;
+      height: 140px;
+      margin: 16px auto;
+      border-radius: 50%;
+      border: 2px solid #0284c7;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle, rgba(2, 132, 199, 0.2) 0%, transparent 70%);
+      overflow: hidden;
+    }
+    .radar-sweep {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, rgba(56, 189, 248, 0.6) 0deg, transparent 60deg, transparent 360deg);
+      animation: radarSpin 2s linear infinite;
+    }
+    @keyframes radarSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .radar-blip {
+      width: 10px;
+      height: 10px;
+      background: #38bdf8;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #38bdf8;
+      z-index: 2;
+    }
+
+    /* -------------------------------------------------------------
+       MODALS & NOTIFICATIONS
+       ------------------------------------------------------------- */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      backdrop-filter: blur(4px);
+    }
+    .modal-backdrop.open {
+      display: flex;
+    }
+    .modal-box {
+      background: var(--bg-wood-card);
+      border: 2px solid var(--border-gold);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+      animation: modalPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes modalPop {
+      from { transform: scale(0.92); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .toast-tray {
+      position: fixed;
+      top: 60px;
+      right: 14px;
+      z-index: 110;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+    }
+    .toast-msg {
+      background: rgba(22, 18, 13, 0.95);
+      border: 1px solid var(--gold-base);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.7);
+      animation: toastIn 0.25s ease forwards;
+    }
+    @keyframes toastIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #110d09; }
+    ::-webkit-scrollbar-thumb { background: #3d3125; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #5a4735; }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================
+       APP HEADER & LEDGER
+       ========================================== -->
+  <header class="smithy-header">
+    <div class="top-meta-row">
+      <div class="brand-group">
+        <svg class="mon-crest" viewBox="0 0 24 24">
+          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+        </svg>
+        <span class="smithy-title">銘刀鍛冶録 ・ SENGOKU SMITHY</span>
+      </div>
+      <div class="top-actions">
+        <button class="btn-chip" id="btn-sound-toggle" onclick="audioManager.toggleMute()">
+          <span id="sound-icon">🔊</span>
+        </button>
+        <button class="btn-chip dev-toggle mono" onclick="toggleDevDrawer()">[DEV]</button>
+        <button class="btn-chip" onclick="openBackupModal()">💾 Backup</button>
+      </div>
+    </div>
+
+    <!-- Ticker Ledger Bar -->
+    <div class="ledger-ribbon mono">
+      <div class="ledger-pill">
+        <span class="lbl">Gold Ryo</span>
+        <span class="val" id="ledger-gold">1,250 両</span>
+      </div>
+      <div class="ledger-pill">
+        <span class="lbl">Charcoal</span>
+        <span class="val" id="ledger-charcoal">45 俵</span>
+      </div>
+      <div class="ledger-pill">
+        <span class="lbl">Quench Salt</span>
+        <span class="val" id="ledger-salts">12 袋</span>
+      </div>
+      <div class="ledger-pill">
+        <span class="lbl">Choji Oil</span>
+        <span class="val" id="ledger-oil">8 瓶</span>
+      </div>
+      <div class="ledger-pill">
+        <span class="lbl">Calendar</span>
+        <span class="val" id="ledger-day">Day 1</span>
+      </div>
+    </div>
+
+    <!-- Collapsible God Mode Dev Drawer -->
+    <div id="dev-drawer" class="mono">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <strong>⚙️ GOD MODE DEVELOPER CONSOLE</strong>
+        <span style="font-size:11px; color:#a78bfa;">Instant testing & verification</span>
+      </div>
+      <div class="dev-grid">
+        <button class="btn-dev" onclick="devCheat('gold50k')">+$50k Ryo</button>
+        <button class="btn-dev" onclick="devCheat('gold500k')">+$500k Ryo</button>
+        <button class="btn-dev" onclick="devCheat('broke')">Broke Mode ($50)</button>
+        <button class="btn-dev" onclick="devCheat('supplies')">+500 Charcoal/Salts</button>
+        <button class="btn-dev" onclick="devCheat('matureAll')">Instant Mature All</button>
+        <button class="btn-dev" onclick="devCheat('spawnApex')">Spawn Apex Tier X</button>
+        <button class="btn-dev" onclick="devCheat('spawnGrail')">Spawn Grail Combo</button>
+        <button class="btn-dev" onclick="devCheat('maxIVs')">Max All Vault IVs</button>
+        <button class="btn-dev" onclick="devCheat('winBattle')">Instant Win Duel</button>
+        <button class="btn-dev" onclick="devCheat('godMode')">God Invincibility</button>
+        <button class="btn-dev" onclick="advanceDay(1)">+1 Day Tick</button>
+        <button class="btn-dev" onclick="advanceDay(7)">+7 Days Tick</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       TOAST MESSAGE TRAY
+       ========================================== -->
+  <div class="toast-tray" id="toast-tray"></div>
+
+  <!-- ==========================================
+       MAIN VIEW CONTAINERS
+       ========================================== -->
+  <main class="smithy-main">
+
+    <!-- ----------------------------------------
+         TAB 1: ROSTER VAULT & DOSSIER
+         ---------------------------------------- -->
+    <section id="view-vault" class="view-panel active">
+      <div class="card-panel">
+        <div class="vault-toolbar">
+          <div class="panel-title">
+            <svg style="width:20px;height:20px;fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3M19 19H5V5H19V19M17 12H15V15H17V17H15V19H13V17H11V19H9V17H7V15H9V12H7V10H9V8H7V6H9V4H11V6H13V4H15V6H17V8H15V10H17V12M13 12V10H11V12H13M13 15V13H11V15H13Z"/></svg>
+            <span>刀剣宝物蔵 (Roster Vault)</span>
+            <span class="mono" style="font-size:13px; color:var(--text-muted);" id="vault-count-badge">(0 Blades)</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <select class="vault-select" id="vault-sort-select" onchange="renderVault()">
+              <option value="val-desc">Valuation (High → Low)</option>
+              <option value="val-asc">Valuation (Low → High)</option>
+              <option value="tier-desc">Tier (High → Low)</option>
+              <option value="tier-asc">Tier (Low → High)</option>
+              <option value="iv-desc">IV Total (Highest)</option>
+              <option value="cond-desc">Condition / Durability</option>
+              <option value="recent">Recent Forges</option>
+            </select>
+            <button class="btn-sengoku sm" onclick="advanceDay(1)">🌅 Advance Day</button>
+          </div>
+        </div>
+        <div id="vault-blades-container">
+          <!-- Dynamic blade cards injected here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------
+         TAB 2: CRUCIBLE FUSION (BREEDING LAIR)
+         ---------------------------------------- -->
+    <section id="view-crucible" class="view-panel">
+      <!-- Crucible Pair Selector & Punnett Live Odds -->
+      <div class="card-panel">
+        <div class="card-panel-header">
+          <div class="panel-title">
+            <span>⚒️ 炉心交配儀式 (Crucible Fusion & Punnett Predictor)</span>
+          </div>
+          <button class="btn-sengoku sm" onclick="autoPairCrucible()">✨ Auto-Pair Optimizer</button>
+        </div>
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">
+          Select two soulbound katanas from your vault as the <strong>Yang Blade (Sire)</strong> and <strong>Yin Blade (Dam)</strong>. The crucible simulates 1,000 Monte Carlo lineage trials to display real-time Punnett odds, super-codominant fusions, and Grail discovery potentials.
+        </p>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px; color:var(--gold-bright); font-weight:700;">陽の太刀 (Yang Forge Ingot):</label>
+            <select class="vault-select" style="width:100%; margin-top:4px;" id="pair-yang-select" onchange="calculatePunnettOdds()">
+              <option value="">-- Choose Blade --</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px; color:var(--crimson-bright); font-weight:700;">陰の太刀 (Yin Forge Ingot):</label>
+            <select class="vault-select" style="width:100%; margin-top:4px;" id="pair-yin-select" onchange="calculatePunnettOdds()">
+              <option value="">-- Choose Blade --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Punnett Forecast Box -->
+        <div id="punnett-results-box" style="background:#130e0a; border:1px solid var(--border-hinoki); border-radius:8px; padding:10px; display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #2a2016; padding-bottom:6px; margin-bottom:6px;">
+            <strong style="color:var(--gold-light); font-size:13px;">📊 1,000-Trial Monte Carlo Punnett Analysis</strong>
+            <span class="mono" style="font-size:11px; color:#86efac;">Active Genetics</span>
+          </div>
+          <div id="punnett-odds-content"></div>
+          <div style="margin-top:10px; text-align:right;">
+            <button class="btn-sengoku crimson" onclick="igniteCrucibleFusion()">🔥 Ignite Crucible (Costs 10 Charcoal + 2 Salts)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5 Nursery Crucible Slots -->
+      <div class="card-panel">
+        <div class="panel-title" style="margin-bottom:10px;">
+          <span>🏯 五基鍛錬炉 (5-Slot Crucible Cooling Chambers)</span>
+          <span style="font-size:12px; color:var(--text-muted); font-weight:normal;">(4-Day Maturation Cycle)</span>
+        </div>
+        <div class="crucible-grid" id="crucible-slots-container">
+          <!-- 5 slots injected dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------
+         TAB 3: STREAMLINED DUEL THEATER
+         ---------------------------------------- -->
+    <section id="view-duels" class="view-panel">
+      <div class="combat-arena">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #281e14; padding-bottom:8px;">
+          <div class="panel-title">
+            <span>⚔️ 御前御前仕合 (Dojo Duel Theater)</span>
+          </div>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <span style="font-size:12px; color:var(--text-muted);">Speed:</span>
+            <button class="btn-chip sm" id="btn-speed-1" onclick="setDuelSpeed(1)">1x</button>
+            <button class="btn-chip sm" id="btn-speed-3" onclick="setDuelSpeed(3)">3x</button>
+            <button class="btn-chip sm" id="btn-speed-inst" onclick="resolveDuelInstant()">⚡ Instant</button>
+          </div>
+        </div>
+
+        <!-- Opponent Match Selector -->
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <label style="font-size:12px; color:var(--text-muted);">Opponent:</label>
+            <select class="vault-select" id="duel-opponent-select" onchange="loadOpponentData()">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div>
+            <button class="btn-sengoku" id="btn-start-duel" onclick="startDuel()">⚔️ Begin Duel</button>
+          </div>
+        </div>
+
+        <!-- Combatants Grid -->
+        <div class="combat-fighters-row">
+          <!-- Player Fighter -->
+          <div class="fighter-box" id="fighter-player-box">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong id="combat-p1-name" style="color:var(--gold-bright); font-size:14px;">Your Blade</strong>
+              <span id="combat-p1-tier" class="badge-tier t3">T3</span>
+            </div>
+            <div class="mono" id="combat-p1-sub" style="font-size:11px; color:var(--text-muted);">Equipped Katana</div>
+
+            <!-- Health Bar -->
+            <div class="gauge-label">
+              <span>Ki / Integrity (HP)</span>
+              <span class="mono" id="combat-p1-hp-text">100 / 100</span>
+            </div>
+            <div class="gauge-track">
+              <div class="gauge-fill-hp" id="combat-p1-hp-fill" style="width: 100%;"></div>
+            </div>
+
+            <!-- Stamina Bar -->
+            <div class="gauge-label">
+              <span>Stamina / Zanshin</span>
+              <span class="mono" id="combat-p1-sta-text">100 / 100</span>
+            </div>
+            <div class="gauge-track">
+              <div class="gauge-fill-sta" id="combat-p1-sta-fill" style="width: 100%;"></div>
+            </div>
+
+            <!-- Tactical Stance Selector -->
+            <div class="gauge-label" style="margin-top:8px;"><span>Tactical Stance:</span></div>
+            <div class="combat-stances-row">
+              <button class="btn-stance active" id="stance-agg" onclick="setStance('agg')">上段 Aggressive<br><small>+Dmg / +Drain</small></button>
+              <button class="btn-stance" id="stance-def" onclick="setStance('def')">中段 Defensive<br><small>+Mitigation</small></button>
+              <button class="btn-stance" id="stance-cnt" onclick="setStance('cnt')">八相 Counter<br><small>+Parry Burst</small></button>
+            </div>
+          </div>
+
+          <!-- Opponent Fighter -->
+          <div class="fighter-box" id="fighter-foe-box">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong id="combat-p2-name" style="color:#ef4444; font-size:14px;">Opponent</strong>
+              <span id="combat-p2-tier" class="badge-tier t3">T3</span>
+            </div>
+            <div class="mono" id="combat-p2-sub" style="font-size:11px; color:var(--text-muted);">Clan Challenger</div>
+
+            <!-- Health Bar -->
+            <div class="gauge-label">
+              <span>Ki / Integrity (HP)</span>
+              <span class="mono" id="combat-p2-hp-text">100 / 100</span>
+            </div>
+            <div class="gauge-track">
+              <div class="gauge-fill-hp" id="combat-p2-hp-fill" style="width: 100%;"></div>
+            </div>
+
+            <!-- Stamina Bar -->
+            <div class="gauge-label">
+              <span>Stamina / Zanshin</span>
+              <span class="mono" id="combat-p2-sta-text">100 / 100</span>
+            </div>
+            <div class="gauge-track">
+              <div class="gauge-fill-sta" id="combat-p2-sta-fill" style="width: 100%;"></div>
+            </div>
+
+            <div style="margin-top:20px; font-size:11px; color:var(--text-dim); text-align:center;">
+              AI Opponent reacts dynamically to your blade's weight and hamon temper.
+            </div>
+          </div>
+        </div>
+
+        <!-- Telemetry Log -->
+        <div class="combat-log-console mono" id="combat-telemetry-log">
+          <div class="combat-log-entry" style="color:var(--text-dim);">[0.00s] Awaiting combat inception. Select your stance and challenge a dojo master.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------
+         TAB 4: 5-LANE CONSIGNMENT AUCTION HOUSE
+         ---------------------------------------- -->
+    <section id="view-auction" class="view-panel">
+      <div class="card-panel">
+        <div class="card-panel-header">
+          <div class="panel-title">
+            <span>🏷️ 諸国競売所 (5-Lane Consignment Auction House)</span>
+          </div>
+          <span style="font-size:12px; color:var(--text-muted);">Broker Fee: 3% upon sale</span>
+        </div>
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">
+          Consign your masterworks to the auction floor. 5 rival syndicates evaluate lineage, IV grades, and rare hamons. Features <strong>Anti-Snipe (+1s)</strong> protection and <strong>Presentation Polish (+66% Hype)</strong>.
+        </p>
+
+        <!-- Consign New Blade Form -->
+        <div style="background:#15100a; border:1px solid var(--border-hinoki); border-radius:8px; padding:10px; margin-bottom:14px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+          <span style="font-size:13px; font-weight:700;">Consign Blade:</span>
+          <select class="vault-select" id="auction-consign-select" style="flex:1; min-width:200px;">
+            <option value="">-- Choose Blade from Vault --</option>
+          </select>
+          <button class="btn-sengoku" onclick="consignBladeToAuction()">🔨 Place on Floor</button>
+        </div>
+
+        <!-- 5 Lanes Grid -->
+        <div class="auction-lanes-grid" id="auction-lanes-container">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------
+         TAB 5: DISTRESSED CLEARANCE (10-SEC TAB)
+         ---------------------------------------- -->
+    <section id="view-clearance" class="view-panel">
+      <div class="clearance-banner">
+        <div>
+          <strong style="font-size:16px; color:#fff;">⚡ 闇市叩き売り (10-Second Distressed Salvage Liquidation)</strong>
+          <div style="font-size:12px; color:#fca5a5;">Mystery battle-damaged blades liquidated at 70% to 99% off retail value!</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px; color:#fca5a5; text-transform:uppercase;">Next Liquidation In</div>
+          <div class="clearance-timer-num mono" id="clearance-timer-display">10.0s</div>
+        </div>
+      </div>
+
+      <div class="clearance-grid" id="clearance-items-container">
+        <!-- 4 mystery salvage items injected here -->
+      </div>
+    </section>
+
+    <!-- ----------------------------------------
+         TAB 6: GLOBAL WONDER TRADE
+         ---------------------------------------- -->
+    <section id="view-wonder" class="view-panel">
+      <div class="card-panel" style="text-align:center;">
+        <div class="panel-title" style="justify-content:center; margin-bottom:6px;">
+          <span>🌐 異国盲見合 (Global Mystery Trade — Wonder Exchange)</span>
+        </div>
+        <p style="font-size:13px; color:var(--text-muted); max-width:600px; margin:0 auto 14px;">
+          Send any soulbound blade into the asynchronous international maritime trade network. AI masters from foreign provinces and Nanban merchants trade back a mystery katana with unique regional origins, with an <strong>8% chance at an apex jackpot roll</strong>!
+        </p>
+
+        <!-- Radar Pulse -->
+        <div class="radar-container" id="radar-container">
+          <div class="radar-sweep" id="radar-sweep" style="display:none;"></div>
+          <div class="radar-blip"></div>
+        </div>
+
+        <div style="max-width:400px; margin:0 auto;">
+          <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Deposit Blade for Trade:</label>
+          <select class="vault-select" id="wonder-blade-select" style="width:100%; margin-bottom:12px;">
+            <option value="">-- Choose Katana to Dispatch --</option>
+          </select>
+          <button class="btn-sengoku full" id="btn-dispatch-wonder" onclick="executeWonderTrade()">⚓ Initiate Foreign Wonder Trade</button>
+        </div>
+
+        <div id="wonder-result-box" style="margin-top:16px; display:none; background:#140e0a; border:1px solid var(--border-gold); border-radius:8px; padding:12px;">
+          <!-- Result rendered dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------
+         TAB 7: CODEX & GRAILS
+         ---------------------------------------- -->
+    <section id="view-codex" class="view-panel">
+      <div class="card-panel">
+        <div class="card-panel-header">
+          <div class="panel-title">
+            <span>📖 天下銘刀図鑑 (World's First Codex & Sacred Grails)</span>
+          </div>
+          <span class="mono" style="font-size:12px; color:var(--gold-bright);" id="codex-completion-stat">Discovered: 0 / 3 Grails</span>
+        </div>
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
+          Synthesizing specific multi-gene homozygous traits and high tiers yields World's First Sacred Grails. Discovering one triggers a naming modal, awards a <strong>+50,000 Ryo Grant</strong>, and permanently unlocks a <strong>6x-9x Auction Multiplier</strong>.
+        </p>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px;" id="codex-grails-container">
+          <!-- Injected via JavaScript -->
+        </div>
+
+        <div style="margin-top:18px; border-top:1px solid var(--border-hinoki); padding-top:12px;">
+          <h4 style="font-size:14px; color:var(--gold-bright); margin-bottom:8px;">🧬 10 Progression Tiers & Lineage Matrix</h4>
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.7;" id="codex-tier-list">
+            <!-- 10 Tiers list -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================
+       BOTTOM PWA DOCK / NAVIGATION
+       ========================================== -->
+  <nav class="bottom-dock">
+    <button class="dock-tab active" onclick="switchTab('vault')">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3M19 19H5V5H19V19M11 7H13V13H11V7M11 15H13V17H11V15Z"/></svg>
+      <span>宝物蔵</span>
+    </button>
+    <button class="dock-tab" onclick="switchTab('crucible')">
+      <svg viewBox="0 0 24 24"><path d="M20.5 11H19V7C19 5.9 18.1 5 17 5H15V3H9V5H7C5.9 5 5 5.9 5 7V11H3.5C2.7 11 2 11.7 2 12.5C2 13.3 2.7 14 3.5 14H5V18C5 19.1 5.9 20 7 20H17C18.1 20 19 19.1 19 18V14H20.5C21.3 14 22 13.3 22 12.5C22 11.7 21.3 11 20.5 11Z"/></svg>
+      <span>炉心交配</span>
+    </button>
+    <button class="dock-tab" onclick="switchTab('duels')">
+      <svg viewBox="0 0 24 24"><path d="M6.92 5H5L10.5 10.5L9.08 11.92L3.58 6.42L2.17 7.83L7.67 13.33L6.25 14.75L2 10.5L3.41 9.09L5.5 11.17L5 10.67L3.58 12.09L4.99 13.5L9.5 9L11.5 11L10.09 12.41L11.5 13.82L13.5 11.82L12.09 10.41L14.09 8.41L12.68 7L10.68 9L9.27 7.59L11.27 5.59L9.86 4.18L7.86 6.18L6.45 4.77L8.45 2.77L7.04 1.36L6.92 5Z"/></svg>
+      <span>御前試合</span>
+    </button>
+    <button class="dock-tab" onclick="switchTab('auction')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2M18 20H6V4H13V9H18V20M10 13H14V15H10V13M10 17H14V19H10V17M10 9H12V11H10V9Z"/></svg>
+      <span>競売所</span>
+    </button>
+    <button class="dock-tab" onclick="switchTab('clearance')">
+      <svg viewBox="0 0 24 24"><path d="M13 2.05V5.08C16.39 5.57 19 8.47 19 12C19 12.9 18.79 13.76 18.42 14.54L20.61 16.73C21.49 15.35 22 13.74 22 12C22 6.82 18.05 2.55 13 2.05M12 19C8.13 19 5 15.87 5 12C5 8.13 8.13 5 12 5V2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C14.76 22 17.26 20.88 19.06 19.07L16.94 16.95C15.68 18.21 13.94 19 12 19M11 7H13V13H11V7M11 15H13V17H11V15Z"/></svg>
+      <span>闇市処分</span>
+    </button>
+    <button class="dock-tab" onclick="switchTab('wonder')">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2M11 19.93C7.05 19.44 4 16.08 4 12C4 11.38 4.08 10.79 4.21 10.21L9 15V16C9 17.1 9.9 18 11 18V19.93M17.9 17.39C17.64 16.58 16.9 16 16 16H15V13C15 12.45 14.55 12 14 12H8V10H10C10.55 10 11 9.55 11 9V7H13C14.1 7 15 6.1 15 5V4.59C17.93 5.78 20 8.65 20 12C20 14.08 19.2 15.97 17.9 17.39Z"/></svg>
+      <span>異国見合</span>
+    </button>
+    <button class="dock-tab" onclick="switchTab('codex')">
+      <svg viewBox="0 0 24 24"><path d="M18 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V4C20 2.9 19.1 2 18 2M6 4H11V12L8.5 10.5L6 12V4M18 20H6V19H18V20M18 17H6V16H18V17M18 14H6V13H18V14M18 11H13V9H18V11M18 7H13V5H18V7Z"/></svg>
+      <span>図鑑</span>
+    </button>
+  </nav>
+
+  <!-- ==========================================
+       MODALS: GRAIL DISCOVERY & BACKUP
+       ========================================== -->
+  <!-- Grail Discovery Modal -->
+  <div class="modal-backdrop" id="modal-grail">
+    <div class="modal-box" style="text-align:center; border-color:var(--gold-bright);">
+      <div style="font-size:32px; margin-bottom:8px;">🌟</div>
+      <h2 style="font-size:20px; color:var(--gold-bright); margin-bottom:6px;">WORLD'S FIRST DISCOVERY!</h2>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
+        A mythical combination of celestial genetics and master craftsmanship has unlocked an immortal blade of legend!
+      </p>
+
+      <div style="background:#130e0a; border:2px solid #eab308; border-radius:8px; padding:12px; margin-bottom:14px;">
+        <h3 id="grail-modal-title" style="font-size:18px; color:#fff;">Kusanagi Heaven-Cleaver</h3>
+        <div id="grail-modal-desc" style="font-size:12px; color:var(--gold-light); margin-top:4px;">
+          Legendary Apex Blade
+        </div>
+        <div class="mono" style="font-size:12px; color:#86efac; margin-top:6px;">
+          +50,000 両 Imperial Grant Awarded & Permanent 8.5x Auction Multiplier Applied!
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Inscribe Custom Honorific Name in the Codex:</label>
+        <input type="text" id="grail-custom-name-input" class="vault-select" style="width:100%; text-align:center;" value="Divine Kusanagi">
+      </div>
+
+      <button class="btn-sengoku crimson full" onclick="closeGrailModal()">Inscribe Into History & Claim Grant</button>
+    </div>
+  </div>
+
+  <!-- Candling / Spectral Inspection Modal -->
+  <div class="modal-backdrop" id="modal-candling">
+    <div class="modal-box">
+      <div class="card-panel-header">
+        <strong style="color:var(--gold-bright);">🔬 炉中透視 (Crucible Spectral Candling)</strong>
+        <button class="btn-chip sm" onclick="closeCandlingModal()">✕</button>
+      </div>
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">
+        Day-2 inspection analyzes molten crystallization inside the crucible, revealing early genetic traits and projected IV grades before final cooling.
+      </p>
+      <div id="candling-content-body">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Backup & Restore Modal -->
+  <div class="modal-backdrop" id="modal-backup">
+    <div class="modal-box">
+      <div class="card-panel-header">
+        <strong style="color:var(--gold-bright);">💾 鍛冶台帳保存 (Backup & JSON Persistence)</strong>
+        <button class="btn-chip sm" onclick="closeBackupModal()">✕</button>
+      </div>
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+        Export your complete smithy ledger and roster as raw JSON, or paste an existing backup to restore immediately.
+      </p>
+      <textarea id="backup-json-area" class="mono" style="width:100%; height:130px; background:#100c08; border:1px solid var(--border-hinoki); color:#a3e635; padding:8px; border-radius:6px; font-size:12px;"></textarea>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="btn-sengoku sm" style="flex:1;" onclick="copyBackupToClipboard()">📋 Copy to Clipboard</button>
+        <button class="btn-sengoku crimson sm" style="flex:1;" onclick="restoreBackupFromJSON()">📥 Restore from JSON</button>
+        <button class="btn-sengoku iron sm" onclick="resetFactoryConfirm()">⚠️ Reset All</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       SOUND SYNTHESIZER & GAME SCRIPT
+       ========================================== -->
+  <script>
+    /* =========================================================
+       1. NATIVE WEB AUDIO SYNTHESIZER (ZERO EXTERNAL ASSETS)
+       ========================================================= */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      toggleMute() {
+        this.muted = !this.muted;
+        const icon = document.getElementById('sound-icon');
+        if (icon) icon.textContent = this.muted ? '🔇' : '🔊';
+        showToast(this.muted ? 'Audio Muted' : 'Audio Enabled');
+      }
+      playTone(freq, type, duration, gainVal = 0.15) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+      }
+      playForgeHammer() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        // Dual harmonic metal strike
+        this.playTone(880, 'triangle', 0.25, 0.2);
+        this.playTone(440, 'sine', 0.35, 0.25);
+      }
+      playSwordClash() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        // White noise burst + sharp metallic ring
+        try {
+          const bufferSize = this.ctx.sampleRate * 0.08;
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+          noise.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start();
+          this.playTone(1200, 'sine', 0.18, 0.15);
+        } catch (e) {}
+      }
+      playParry() {
+        if (this.muted) return;
+        this.playTone(1760, 'sine', 0.4, 0.25);
+        this.playTone(2200, 'triangle', 0.3, 0.15);
+      }
+      playCrit() {
+        if (this.muted) return;
+        this.playTone(220, 'sawtooth', 0.35, 0.3);
+        this.playTone(110, 'sine', 0.45, 0.4);
+      }
+      playGavel() {
+        if (this.muted) return;
+        this.playTone(180, 'sine', 0.15, 0.35);
+        this.playTone(90, 'triangle', 0.2, 0.4);
+      }
+      playRadarPing() {
+        if (this.muted) return;
+        this.playTone(987.77, 'sine', 0.5, 0.12);
+      }
+      playVictory() {
+        if (this.muted) return;
+        // Traditional Insen scale notes: D4 (293.66), Eb4 (311.13), G4 (392.00), A4 (440.00)
+        const notes = [293.66, 311.13, 392.00, 440.00, 587.33];
+        notes.forEach((freq, idx) => {
+          setTimeout(() => this.playTone(freq, 'sine', 0.35, 0.18), idx * 110);
+        });
+      }
+      playCash() {
+        if (this.muted) return;
+        this.playTone(987.77, 'triangle', 0.12, 0.15);
+        setTimeout(() => this.playTone(1318.51, 'sine', 0.22, 0.2), 80);
+      }
+    }
+    const audioManager = new SoundEngine();
+
+    // Trigger audio context on first user tap
+    window.addEventListener('click', () => audioManager.init(), { once: true });
+    window.addEventListener('touchstart', () => audioManager.init(), { once: true });
+
+    /* =========================================================
+       2. STATIC GAME DATA: 10 TIERS, GENETICS, GRAILS & SYNDICATES
+       ========================================================= */
+    const TIERS = [
+      { level: 1, name: "Scrap Wakizashi", role: "Peasant Shinkenyu", baseWeapon: "Crude Iron Wakizashi", baseValue: 220, baseStat: 30 },
+      { level: 2, name: "Ashigaru Katana", role: "Footman Enforcer", baseWeapon: "Standard Military Katana", baseValue: 550, baseStat: 42 },
+      { level: 3, name: "Ronin Sidearm", role: "Wandering Duelist", baseWeapon: "Tempered Bizen Blade", baseValue: 1350, baseStat: 52 },
+      { level: 4, name: "Bushi Nodachi", role: "Vanguard Decimator", baseWeapon: "Great Battlefield Nodachi", baseValue: 3200, baseStat: 62 },
+      { level: 5, name: "Hatamoto Cleaver", role: "Shogun Guard", baseWeapon: "Heavy Dotanuki", baseValue: 7800, baseStat: 72 },
+      { level: 6, name: "Daimyo Relic", role: "Clan Champion", baseWeapon: "Ancestral Tachi", baseValue: 18500, baseStat: 80 },
+      { level: 7, name: "Kensei Masterwork", role: "Sword Saint", baseWeapon: "Flawless Chōji Midare", baseValue: 46000, baseStat: 86 },
+      { level: 8, name: "Oni-Bane Zanbato", role: "Demon Executioner", baseWeapon: "Massive Slaying Zanbato", baseValue: 115000, baseStat: 91 },
+      { level: 9, name: "Masamune Sovereign", role: "Divine Harmonizer", baseWeapon: "Harmonious Soshu Kami", baseValue: 290000, baseStat: 95 },
+      { level: 10, name: "Muramasa Blood-Apocalypse", role: "Apex Legend", baseWeapon: "Cursed Soul-Reaper", baseValue: 800000, baseStat: 99 }
+    ];
+
+    const RECESSIVES = [
+      { id: "raindrop_hamon", name: "Raindrop Hamon", desc: "Mesmerizing bubble temper line (+15% Bal, +12% Res)", mult: 1.35 },
+      { id: "meteorite_nickel", name: "Meteorite Nickel", desc: "Extraterrestrial crystalline banding (+20% Hard, +10% Shp)", mult: 1.40 },
+      { id: "blood_steel", name: "Blood-Steel Temper", desc: "Crimson-oxidized quench (+25% Sharp, -5% Flex)", mult: 1.45 },
+      { id: "obsidian_quench", name: "Obsidian Quench", desc: "Mirror-black obsidian sheen (+20% Bal, +15% Hard)", mult: 1.40 },
+      { id: "dragonscale", name: "Dragonscale Pattern", desc: "Intricate folded damascus scales (+15% Flex, +20% Res)", mult: 1.45 },
+      { id: "celestial_tamahagane", name: "Celestial Tamahagane", desc: "Ultra-rare divine iridescence (+35% to all IVs)", mult: 2.80, ultraRare: true }
+    ];
+
+    const CODOMS = [
+      { id: "carbon_fold", baseName: "High-Carbon Fold", superName: "Super: Hyper-Crucible Tungsten", bonus: "+30% Sharp & Hard" },
+      { id: "titanium_carbide", baseName: "Titanium-Carbide Spine", superName: "Super: Absolute Adamantine", bonus: "+35% Hard & Flex" },
+      { id: "quicksilver_core", baseName: "Quicksilver Core", superName: "Super: Chrono-Mercury Spine", bonus: "+30% Bal & Spd" },
+      { id: "thunder_glass", baseName: "Thunder-Glass Temper", superName: "Super: Arc-Plasma Hamon", bonus: "+40% Res & Crit" }
+    ];
+
+    const GRAILS = [
+      {
+        id: "muramasa_bloodsing",
+        name: "Muramasa Bloodsing",
+        desc: "Forged in slaughter; sings in battle when crimson steel meets hyper-crucible tungsten.",
+        reqDesc: "Blood-Steel Temper (Homo) + Super Hyper-Crucible Tungsten + Tier >= VII",
+        multiplier: 7.2,
+        check: (b) => b.recessives.blood_steel === 'homo' && b.codoms.carbon_fold === 2 && b.tier >= 7
+      },
+      {
+        id: "kusanagi_cleaver",
+        name: "Kusanagi Heaven-Cleaver",
+        desc: "Imperial sovereign sacred blade cut from the tail of the eight-forked serpent.",
+        reqDesc: "Celestial Tamahagane (Homo) + Super Absolute Adamantine + Tier >= VIII",
+        multiplier: 8.8,
+        check: (b) => b.recessives.celestial_tamahagane === 'homo' && b.codoms.titanium_carbide === 2 && b.tier >= 8
+      },
+      {
+        id: "void_drifter",
+        name: "Void-Drifter Eclipse",
+        desc: "Shadow forged blade that reflects no light and slices the fabric of time.",
+        reqDesc: "Obsidian Quench (Homo) + Super Chrono-Mercury Spine + Dragonscale (Homo)",
+        multiplier: 8.0,
+        check: (b) => b.recessives.obsidian_quench === 'homo' && b.codoms.quicksilver_core === 2 && b.recessives.dragonscale === 'homo'
+      }
+    ];
+
+    const SYNDICATES = [
+      { id: "kuroda", name: "Clan Kuroda Guild", pref: "Tiers & Prestige", multBonus: 1.25 },
+      { id: "date", name: "Date Iron Syndicate", pref: "Hardness & Durability", multBonus: 1.20 },
+      { id: "shimazu", name: "Shimazu Berserkers", pref: "Sharpness & Blood-Steel", multBonus: 1.30 },
+      { id: "imperial", name: "Imperial Court Appraisers", pref: "Recessives & Resonance", multBonus: 1.45 },
+      { id: "ninja", name: "Black-Market Smugglers", pref: "Bargain Opportunists", multBonus: 1.10 }
+    ];
+
+    const OPPONENTS = [
+      { id: "opp_1", name: "Wandering Straw-Hat Ronin", title: "Wayfarer", tier: 2, hp: 120, attack: 14, defense: 8, speed: 12, reward: 280 },
+      { id: "opp_2", name: "Bizen Village Duelist", title: "Bushi Aspirant", tier: 3, hp: 160, attack: 22, defense: 14, speed: 15, reward: 550 },
+      { id: "opp_3", name: "Aizu Clan Heavy Guard", title: "Castle Gatekeeper", tier: 4, hp: 220, attack: 30, defense: 22, speed: 14, reward: 1100 },
+      { id: "opp_4", name: "Shadow Iga Jonin", title: "Night Blade", tier: 5, hp: 260, attack: 40, defense: 26, speed: 28, reward: 2400 },
+      { id: "opp_5", name: "Daimyo Champion Sasaki", title: "Swallow Strike", tier: 6, hp: 320, attack: 52, defense: 34, speed: 32, reward: 5200 },
+      { id: "opp_6", name: "Sword Saint Kensei Kamiizumi", title: "Shinkage-ryu Founder", tier: 7, hp: 420, attack: 68, defense: 46, speed: 38, reward: 12000 },
+      { id: "opp_7", name: "Demonic Oni of Mt. Oe", title: "Blood Executioner", tier: 8, hp: 560, attack: 85, defense: 58, speed: 34, reward: 28000 },
+      { id: "opp_8", name: "Divine Avatar of Bishamonten", title: "War God Incarnate", tier: 9, hp: 740, attack: 105, defense: 75, speed: 45, reward: 65000 },
+      { id: "opp_9", name: "Apex Muramasa Phantom", title: "Cursed Sword God", tier: 10, hp: 999, attack: 135, defense: 90, speed: 55, reward: 180000 }
+    ];
+
+    /* =========================================================
+       3. DEFAULT GAME STATE & PERSISTENCE
+       ========================================================= */
+    const STORAGE_KEY = "sengoku_smithy_save_v1";
+
+    let state = {
+      gold: 1500,
+      charcoal: 40,
+      salts: 15,
+      oil: 6,
+      day: 1,
+      equippedBladeId: null,
+      blades: [],
+      crucibleSlots: [
+        { slotId: 0, status: 'empty', progress: 0, maturationDays: 4, yangId: null, yinId: null, candled: false, embryo: null },
+        { slotId: 1, status: 'empty', progress: 0, maturationDays: 4, yangId: null, yinId: null, candled: false, embryo: null },
+        { slotId: 2, status: 'empty', progress: 0, maturationDays: 4, yangId: null, yinId: null, candled: false, embryo: null },
+        { slotId: 3, status: 'empty', progress: 0, maturationDays: 4, yangId: null, yinId: null, candled: false, embryo: null },
+        { slotId: 4, status: 'empty', progress: 0, maturationDays: 4, yangId: null, yinId: null, candled: false, embryo: null }
+      ],
+      auctionLanes: [
+        { laneId: 0, active: false, blade: null, currentBid: 0, leaderSyndicate: null, timer: 0, polished: false },
+        { laneId: 1, active: false, blade: null, currentBid: 0, leaderSyndicate: null, timer: 0, polished: false },
+        { laneId: 2, active: false, blade: null, currentBid: 0, leaderSyndicate: null, timer: 0, polished: false },
+        { laneId: 3, active: false, blade: null, currentBid: 0, leaderSyndicate: null, timer: 0, polished: false },
+        { laneId: 4, active: false, blade: null, currentBid: 0, leaderSyndicate: null, timer: 0, polished: false }
+      ],
+      clearanceBlades: [],
+      clearanceTimer: 10.0,
+      codexGrails: {},
+      godInvincible: false
+    };
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.warn('LocalStorage error', e);
+      }
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          state = { ...state, ...parsed };
+        } else {
+          // Initialize Starter Kit
+          seedStarterBlades();
+        }
+      } catch (e) {
+        seedStarterBlades();
+      }
+    }
+
+    function seedStarterBlades() {
+      const bladeA = createBladeObject({
+        name: "Bizen Tamahagane Katana",
+        tier: 2,
+        ivs: { sharpness: 68, hardness: 64, balance: 72, flexibility: 60, resonance: 58 },
+        recessives: { raindrop_hamon: 'het', meteorite_nickel: 'none', blood_steel: 'none', obsidian_quench: 'none', dragonscale: 'none', celestial_tamahagane: 'none' },
+        codoms: { carbon_fold: 1, titanium_carbide: 0, quicksilver_core: 0, thunder_glass: 0 }
+      });
+      const bladeB = createBladeObject({
+        name: "Soshu Folded Wakizashi",
+        tier: 2,
+        ivs: { sharpness: 62, hardness: 75, balance: 65, flexibility: 70, resonance: 63 },
+        recessives: { raindrop_hamon: 'het', meteorite_nickel: 'none', blood_steel: 'none', obsidian_quench: 'none', dragonscale: 'none', celestial_tamahagane: 'none' },
+        codoms: { carbon_fold: 1, titanium_carbide: 0, quicksilver_core: 0, thunder_glass: 0 }
+      });
+      state.blades = [bladeA, bladeB];
+      state.equippedBladeId = bladeA.id;
+      bladeA.equipped = true;
+      saveState();
+    }
+
+    /* =========================================================
+       4. BLADE GENERATOR, VALUATION & GENETIC CALCULATOR
+       ========================================================= */
+    function getIVGrade(val) {
+      if (val >= 99) return { grade: "SSS+", cls: "grade-SSS" };
+      if (val >= 96) return { grade: "SS", cls: "grade-SS" };
+      if (val >= 90) return { grade: "S", cls: "grade-S" };
+      if (val >= 80) return { grade: "A", cls: "grade-A" };
+      if (val >= 70) return { grade: "B", cls: "grade-B" };
+      if (val >= 55) return { grade: "C", cls: "grade-C" };
+      if (val >= 40) return { grade: "D", cls: "grade-D" };
+      return { grade: "F", cls: "grade-F" };
+    }
+
+    function createBladeObject(overrides = {}) {
+      const tierLvl = overrides.tier || 1;
+      const tierObj = TIERS[tierLvl - 1] || TIERS[0];
+      const baseStat = tierObj.baseStat;
+
+      // Random IV spread centered on baseStat
+      const randIV = () => Math.min(100, Math.max(15, Math.floor(baseStat + (Math.random() * 26 - 13))));
+
+      const recessives = {
+        raindrop_hamon: 'none',
+        meteorite_nickel: 'none',
+        blood_steel: 'none',
+        obsidian_quench: 'none',
+        dragonscale: 'none',
+        celestial_tamahagane: 'none',
+        ...(overrides.recessives || {})
+      };
+
+      const codoms = {
+        carbon_fold: 0,
+        titanium_carbide: 0,
+        quicksilver_core: 0,
+        thunder_glass: 0,
+        ...(overrides.codoms || {})
+      };
+
+      const blade = {
+        id: 'blade_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+        name: overrides.name || tierObj.name,
+        customName: overrides.customName || null,
+        tier: tierLvl,
+        origin: overrides.origin || "Sengoku Master Anvil",
+        durability: overrides.durability !== undefined ? overrides.durability : 100,
+        maxDurability: 100,
+        fatigue: overrides.fatigue || 0,
+        wins: overrides.wins || 0,
+        losses: overrides.losses || 0,
+        equipped: !!overrides.equipped,
+        ivs: overrides.ivs || {
+          sharpness: randIV(),
+          hardness: randIV(),
+          balance: randIV(),
+          flexibility: randIV(),
+          resonance: randIV()
+        },
+        recessives,
+        codoms,
+        isGrail: false,
+        grailId: null,
+        grailName: null,
+        grailMultiplier: 1.0,
+        createdAtDay: state.day
+      };
+
+      // Check for Grails
+      GRAILS.forEach(g => {
+        if (g.check(blade)) {
+          blade.isGrail = true;
+          blade.grailId = g.id;
+          blade.grailName = g.name;
+          blade.grailMultiplier = g.multiplier;
+        }
+      });
+
+      return blade;
+    }
+
+    function calculateBladeValue(blade) {
+      const tierObj = TIERS[blade.tier - 1] || TIERS[0];
+      let val = tierObj.baseValue;
+
+      // IV score multiplier
+      const avgIV = (blade.ivs.sharpness + blade.ivs.hardness + blade.ivs.balance + blade.ivs.flexibility + blade.ivs.resonance) / 5;
+      val *= (0.5 + (avgIV / 60));
+
+      // Recessives multiplier
+      RECESSIVES.forEach(r => {
+        const gene = blade.recessives[r.id];
+        if (gene === 'homo') {
+          val *= r.mult;
+        } else if (gene === 'het') {
+          val *= 1.12; // Carrier value bonus
+        }
+      });
+
+      // Codominants multiplier
+      CODOMS.forEach(c => {
+        const lvl = blade.codoms[c.id];
+        if (lvl === 1) val *= 1.25;
+        if (lvl === 2) val *= 1.85; // Super trait
+      });
+
+      // Grail multiplier
+      if (blade.isGrail) {
+        val *= blade.grailMultiplier;
+      }
+
+      // Condition penalty
+      const condFactor = (blade.durability / 100);
+      val *= Math.max(0.4, condFactor);
+
+      return Math.round(val);
+    }
+
+    /* =========================================================
+       5. MONTE CARLO PUNNETT SIMULATOR (1,000 TRIALS)
+       ========================================================= */
+    function simulateOffspring(yang, yin) {
+      // 1. Tier Resolution (Compatibility and upgrade chance)
+      let offTier = Math.max(yang.tier, yin.tier);
+      const rollTier = Math.random();
+      if (rollTier < 0.22 && offTier < 10) {
+        offTier += 1; // +1 Tier breakthrough!
+      } else if (rollTier > 0.94 && offTier > 1) {
+        offTier -= 1;
+      }
+
+      // 2. Mendelian Recessive inheritance
+      const offRecessives = {};
+      RECESSIVES.forEach(r => {
+        const yG = yang.recessives[r.id];
+        const iG = yin.recessives[r.id];
+
+        // Assign alleles: '0' (wildtype), '1' (mutant)
+        const getAlleles = (status) => {
+          if (status === 'homo') return [1, 1];
+          if (status === 'het') return [1, 0];
+          return [0, 0];
+        };
+        const yAlleles = getAlleles(yG);
+        const iAlleles = getAlleles(iG);
+
+        // Random pick 1 allele from Yang, 1 from Yin
+        const a1 = yAlleles[Math.floor(Math.random() * 2)];
+        const a2 = iAlleles[Math.floor(Math.random() * 2)];
+        const sum = a1 + a2;
+
+        if (sum === 2) offRecessives[r.id] = 'homo';
+        else if (sum === 1) offRecessives[r.id] = 'het';
+        else offRecessives[r.id] = 'none';
+      });
+
+      // 3. Codominant Structural Trait inheritance
+      // Level: 0 (none), 1 (het), 2 (super-homo)
+      const offCodoms = {};
+      CODOMS.forEach(c => {
+        const yL = yang.codoms[c.id] || 0;
+        const iL = yin.codoms[c.id] || 0;
+
+        const getCodomAlleles = (lvl) => {
+          if (lvl === 2) return [1, 1];
+          if (lvl === 1) return [1, 0];
+          return [0, 0];
+        };
+        const yA = getCodomAlleles(yL);
+        const iA = getCodomAlleles(iL);
+        const pick1 = yA[Math.floor(Math.random() * 2)];
+        const pick2 = iA[Math.floor(Math.random() * 2)];
+        offCodoms[c.id] = pick1 + pick2; // 0, 1, or 2 (super)
+      });
+
+      // 4. Combat IV inheritance (average parents + regression variance)
+      const inheritIV = (statKey) => {
+        const pAvg = (yang.ivs[statKey] + yin.ivs[statKey]) / 2;
+        const variance = Math.floor(Math.random() * 19 - 9); // -9 to +9
+        return Math.min(100, Math.max(20, Math.round(pAvg + variance)));
+      };
+
+      const offIVs = {
+        sharpness: inheritIV('sharpness'),
+        hardness: inheritIV('hardness'),
+        balance: inheritIV('balance'),
+        flexibility: inheritIV('flexibility'),
+        resonance: inheritIV('resonance')
+      };
+
+      const embryo = createBladeObject({
+        tier: offTier,
+        recessives: offRecessives,
+        codoms: offCodoms,
+        ivs: offIVs,
+        origin: "Crucible Lineage Fusion"
+      });
+
+      return embryo;
+    }
+
+    function runMonteCarloPunnett(yang, yin, trials = 1000) {
+      const traitCounts = {};
+      RECESSIVES.forEach(r => {
+        traitCounts[r.id + '_homo'] = 0;
+        traitCounts[r.id + '_het'] = 0;
+      });
+      CODOMS.forEach(c => {
+        traitCounts[c.id + '_base'] = 0;
+        traitCounts[c.id + '_super'] = 0;
+      });
+      const grailCounts = {
+        muramasa_bloodsing: 0,
+        kusanagi_cleaver: 0,
+        void_drifter: 0
+      };
+      const tierCounts = {};
+
+      for (let i = 0; i < trials; i++) {
+        const off = simulateOffspring(yang, yin);
+        tierCounts[off.tier] = (tierCounts[off.tier] || 0) + 1;
+
+        RECESSIVES.forEach(r => {
+          if (off.recessives[r.id] === 'homo') traitCounts[r.id + '_homo']++;
+          if (off.recessives[r.id] === 'het') traitCounts[r.id + '_het']++;
+        });
+
+        CODOMS.forEach(c => {
+          if (off.codoms[c.id] === 2) traitCounts[c.id + '_super']++;
+          else if (off.codoms[c.id] === 1) traitCounts[c.id + '_base']++;
+        });
+
+        if (off.isGrail && grailCounts[off.grailId] !== undefined) {
+          grailCounts[off.grailId]++;
+        }
+      }
+
+      return { trials, traitCounts, grailCounts, tierCounts };
+    }
+
+    /* =========================================================
+       6. UI LOGIC: NAVIGATION, ROSTER VAULT & MONOSPACE DOSSIERS
+       ========================================================= */
+    function switchTab(tabKey) {
+      audioManager.playForgeHammer();
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.dock-tab').forEach(t => t.classList.remove('active'));
+
+      const targetPanel = document.getElementById(`view-${tabKey}`);
+      if (targetPanel) targetPanel.classList.add('active');
+
+      const tabs = ['vault', 'crucible', 'duels', 'auction', 'clearance', 'wonder', 'codex'];
+      const idx = tabs.indexOf(tabKey);
+      if (idx !== -1) {
+        const dockTabs = document.querySelectorAll('.dock-tab');
+        if (dockTabs[idx]) dockTabs[idx].classList.add('active');
+      }
+
+      if (tabKey === 'vault') renderVault();
+      if (tabKey === 'crucible') { populateCrucibleSelectors(); renderCrucibleSlots(); }
+      if (tabKey === 'duels') initDuelView();
+      if (tabKey === 'auction') { renderAuctionView(); populateAuctionConsignSelector(); }
+      if (tabKey === 'clearance') renderClearanceView();
+      if (tabKey === 'wonder') populateWonderSelector();
+      if (tabKey === 'codex') renderCodexView();
+    }
+
+    function updateLedgerUI() {
+      document.getElementById('ledger-gold').textContent = `${state.gold.toLocaleString()} 両`;
+      document.getElementById('ledger-charcoal').textContent = `${state.charcoal} 俵`;
+      document.getElementById('ledger-salts').textContent = `${state.salts} 袋`;
+      document.getElementById('ledger-oil').textContent = `${state.oil} 瓶`;
+      document.getElementById('ledger-day').textContent = `Day ${state.day}`;
+    }
+
+    function showToast(msg) {
+      const tray = document.getElementById('toast-tray');
+      const toast = document.createElement('div');
+      toast.className = 'toast-msg';
+      toast.textContent = msg;
+      tray.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 2600);
+    }
+
+    function renderVault() {
+      const container = document.getElementById('vault-blades-container');
+      const countBadge = document.getElementById('vault-count-badge');
+      if (!container) return;
+
+      countBadge.textContent = `(${state.blades.length} Blades)`;
+
+      const sortMode = document.getElementById('vault-sort-select').value;
+      const sorted = [...state.blades].sort((a, b) => {
+        const valA = calculateBladeValue(a);
+        const valB = calculateBladeValue(b);
+        if (sortMode === 'val-desc') return valB - valA;
+        if (sortMode === 'val-asc') return valA - valB;
+        if (sortMode === 'tier-desc') return b.tier - a.tier;
+        if (sortMode === 'tier-asc') return a.tier - b.tier;
+        if (sortMode === 'iv-desc') {
+          const totA = a.ivs.sharpness + a.ivs.hardness + a.ivs.balance + a.ivs.flexibility + a.ivs.resonance;
+          const totB = b.ivs.sharpness + b.ivs.hardness + b.ivs.balance + b.ivs.flexibility + b.ivs.resonance;
+          return totB - totA;
+        }
+        if (sortMode === 'cond-desc') return b.durability - a.durability;
+        return b.createdAtDay - a.createdAtDay;
+      });
+
+      if (sorted.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted);">Your sword vault is empty. Forge blades in the crucible or bid in the auction!</div>`;
+        return;
+      }
+
+      container.innerHTML = sorted.map(blade => {
+        const val = calculateBladeValue(blade);
+        const quickSellVal = Math.round(val * 0.77);
+        const isEquipped = state.equippedBladeId === blade.id;
+        const tierObj = TIERS[blade.tier - 1];
+
+        // Format traits
+        let traitBadgesHtml = '';
+        RECESSIVES.forEach(r => {
+          if (blade.recessives[r.id] === 'homo') {
+            traitBadgesHtml += `<span class="badge-trait homo">✦ ${r.name}</span>`;
+          } else if (blade.recessives[r.id] === 'het') {
+            traitBadgesHtml += `<span class="badge-trait">Het ${r.name}</span>`;
+          }
+        });
+        CODOMS.forEach(c => {
+          if (blade.codoms[c.id] === 2) {
+            traitBadgesHtml += `<span class="badge-trait super">★ ${c.superName}</span>`;
+          } else if (blade.codoms[c.id] === 1) {
+            traitBadgesHtml += `<span class="badge-trait">${c.baseName}</span>`;
+          }
+        });
+        if (blade.isGrail) {
+          traitBadgesHtml += `<span class="badge-trait grail">🌟 GRAIL: ${blade.grailName}</span>`;
+        }
+
+        // IV bars
+        const ivHtml = ['sharpness', 'hardness', 'balance', 'flexibility', 'resonance'].map(statKey => {
+          const valNum = blade.ivs[statKey];
+          const gradeInfo = getIVGrade(valNum);
+          return `
+            <div class="iv-col mono">
+              <div class="iv-lbl">
+                <span>${statKey.substr(0, 4).toUpperCase()}</span>
+                <span class="${gradeInfo.cls}">${valNum} [${gradeInfo.grade}]</span>
+              </div>
+              <div class="iv-track">
+                <div class="iv-fill" style="width: ${valNum}%;"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="blade-card ${isEquipped ? 'equipped' : ''}" id="card-${blade.id}">
+            <div class="blade-top-row">
+              <div>
+                <span class="badge-tier t${blade.tier}">Tier ${blade.tier} ・ ${tierObj.name}</span>
+                <div class="blade-name-title" style="margin-top:3px;">
+                  ${blade.customName ? `<strong>${blade.customName}</strong> <span style="font-size:12px;color:var(--text-muted);">(${blade.name})</span>` : blade.name}
+                </div>
+                <div class="blade-sub mono">${blade.origin} ・ Durability: ${blade.durability}% ・ Record: ${blade.wins}W / ${blade.losses}L</div>
+              </div>
+              <div class="blade-val mono">
+                <div style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Appraisal</div>
+                <div class="amt">${val.toLocaleString()} 両</div>
+              </div>
+            </div>
+
+            <div style="margin: 6px 0;">
+              ${traitBadgesHtml || '<span style="font-size:11px; color:var(--text-dim);">Wild-Type Steel Lineage (Standard)</span>'}
+            </div>
+
+            <div class="iv-grid">
+              ${ivHtml}
+            </div>
+
+            <div class="blade-actions-row">
+              <button class="btn-sengoku ${isEquipped ? 'iron' : 'crimson'} sm" onclick="equipBlade('${blade.id}')">
+                ${isEquipped ? '✓ Equipped for Duels' : '⚔️ Equip for Duels'}
+              </button>
+              <button class="btn-sengoku sm" onclick="honeBlade('${blade.id}')">
+                🪨 Honing & Polish (1 Salt)
+              </button>
+              <button class="btn-sengoku iron sm" onclick="renameBladePrompt('${blade.id}')">
+                ✏️ Rename
+              </button>
+              <button class="btn-sengoku iron sm" style="margin-left:auto; color:#fca5a5;" onclick="quickSellBlade('${blade.id}')">
+                ⚡ 77% Quick-Sell (${quickSellVal.toLocaleString()} 両)
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function equipBlade(bladeId) {
+      state.equippedBladeId = bladeId;
+      state.blades.forEach(b => b.equipped = (b.id === bladeId));
+      saveState();
+      renderVault();
+      audioManager.playSwordClash();
+      showToast("Equipped blade updated for dojo duels!");
+    }
+
+    function honeBlade(bladeId) {
+      if (state.salts < 1) {
+        showToast("Insufficient Quench Salts! Advance day or purchase.");
+        return;
+      }
+      const blade = state.blades.find(b => b.id === bladeId);
+      if (!blade) return;
+
+      state.salts -= 1;
+      blade.durability = Math.min(100, blade.durability + 30);
+      blade.fatigue = Math.max(0, blade.fatigue - 25);
+      // Small IV polish bonus (+1 to a random IV)
+      const keys = ['sharpness', 'hardness', 'balance', 'flexibility', 'resonance'];
+      const target = keys[Math.floor(Math.random() * keys.length)];
+      if (blade.ivs[target] < 100) blade.ivs[target] += 1;
+
+      audioManager.playForgeHammer();
+      saveState();
+      updateLedgerUI();
+      renderVault();
+      showToast(`Honed ${blade.name}! Restored durability & polished ${target.toUpperCase()}.`);
+    }
+
+    function renameBladePrompt(bladeId) {
+      const blade = state.blades.find(b => b.id === bladeId);
+      if (!blade) return;
+      const current = blade.customName || blade.name;
+      const val = prompt("Inscribe new honorific name for this katana:", current);
+      if (val && val.trim().length > 0) {
+        blade.customName = val.trim();
+        saveState();
+        renderVault();
+        showToast("Katana inscribed with honorific name.");
+      }
+    }
+
+    function quickSellBlade(bladeId) {
+      const idx = state.blades.findIndex(b => b.id === bladeId);
+      if (idx === -1) return;
+      const blade = state.blades[idx];
+      if (state.blades.length <= 1) {
+        showToast("Cannot sell your last remaining blade! You must maintain a soulbound weapon.");
+        return;
+      }
+      const val = calculateBladeValue(blade);
+      const payout = Math.round(val * 0.77);
+
+      state.gold += payout;
+      state.blades.splice(idx, 1);
+      if (state.equippedBladeId === bladeId) {
+        state.equippedBladeId = state.blades[0].id;
+        state.blades[0].equipped = true;
+      }
+      audioManager.playCash();
+      saveState();
+      updateLedgerUI();
+      renderVault();
+      showToast(`Wholesale quick-sold for +${payout.toLocaleString()} 両!`);
+    }
+
+    /* =========================================================
+       7. CRUCIBLE FUSION & LIVE PUNNETT DISPLAY
+       ========================================================= */
+    function populateCrucibleSelectors() {
+      const yangSel = document.getElementById('pair-yang-select');
+      const yinSel = document.getElementById('pair-yin-select');
+      if (!yangSel || !yinSel) return;
+
+      const optsHtml = `<option value="">-- Choose Blade --</option>` +
+        state.blades.map(b => `<option value="${b.id}">[T${b.tier}] ${b.customName || b.name} (Val: ${calculateBladeValue(b).toLocaleString()} 両)</option>`).join('');
+
+      yangSel.innerHTML = optsHtml;
+      yinSel.innerHTML = optsHtml;
+
+      if (state.blades.length >= 2) {
+        yangSel.value = state.blades[0].id;
+        yinSel.value = state.blades[1].id;
+        calculatePunnettOdds();
+      }
+    }
+
+    function calculatePunnettOdds() {
+      const yangId = document.getElementById('pair-yang-select').value;
+      const yinId = document.getElementById('pair-yin-select').value;
+      const resultsBox = document.getElementById('punnett-results-box');
+      const content = document.getElementById('punnett-odds-content');
+      if (!resultsBox || !content) return;
+
+      if (!yangId || !yinId || yangId === yinId) {
+        resultsBox.style.display = 'none';
+        return;
+      }
+
+      const yang = state.blades.find(b => b.id === yangId);
+      const yin = state.blades.find(b => b.id === yinId);
+      if (!yang || !yin) return;
+
+      resultsBox.style.display = 'block';
+
+      const analysis = runMonteCarloPunnett(yang, yin, 1000);
+
+      // Format Tier chances
+      const tierRows = Object.keys(analysis.tierCounts).sort((a,b)=>a-b).map(t => {
+        const pct = ((analysis.tierCounts[t] / analysis.trials) * 100).toFixed(1);
+        return `<span class="badge-tier t${t}" style="margin-right:6px;">T${t}: ${pct}%</span>`;
+      }).join(' ');
+
+      // Trait chances
+      let traitRows = '';
+      RECESSIVES.forEach(r => {
+        const homoPct = ((analysis.traitCounts[r.id + '_homo'] / analysis.trials) * 100).toFixed(1);
+        const hetPct = ((analysis.traitCounts[r.id + '_het'] / analysis.trials) * 100).toFixed(1);
+        if (parseFloat(homoPct) > 0 || parseFloat(hetPct) > 0) {
+          traitRows += `
+            <tr>
+              <td>${r.name}</td>
+              <td style="color:#fca5a5;">Homo (Visual): ${homoPct}%</td>
+              <td style="color:#cbd5e1;">Het (Carrier): ${hetPct}%</td>
+            </tr>
+          `;
+        }
+      });
+
+      CODOMS.forEach(c => {
+        const superPct = ((analysis.traitCounts[c.id + '_super'] / analysis.trials) * 100).toFixed(1);
+        const basePct = ((analysis.traitCounts[c.id + '_base'] / analysis.trials) * 100).toFixed(1);
+        if (parseFloat(superPct) > 0 || parseFloat(basePct) > 0) {
+          traitRows += `
+            <tr>
+              <td>${c.baseName}</td>
+              <td style="color:var(--gold-bright); font-weight:700;">${c.superName}: ${superPct}%</td>
+              <td style="color:#cbd5e1;">Single: ${basePct}%</td>
+            </tr>
+          `;
+        }
+      });
+
+      // Grail potentials
+      let grailAlert = '';
+      GRAILS.forEach(g => {
+        const gPct = ((analysis.grailCounts[g.id] / analysis.trials) * 100).toFixed(1);
+        if (parseFloat(gPct) > 0) {
+          grailAlert += `<div class="mono" style="color:#f472b6; font-weight:800; font-size:12px; margin-top:4px;">🌟 Grail Combo Probability (${g.name}): ${gPct}%</div>`;
+        }
+      });
+
+      content.innerHTML = `
+        <div style="margin-bottom:8px;">
+          <strong style="font-size:11px; color:var(--text-muted);">PROJECTED OFFSPRING TIERS:</strong><br>
+          <div style="margin-top:4px;">${tierRows}</div>
+        </div>
+        ${grailAlert}
+        <table class="punnett-table mono">
+          <thead>
+            <tr><th>Gene Trait</th><th>Homozygous / Super Odds</th><th>Carrier / Hetero Odds</th></tr>
+          </thead>
+          <tbody>
+            ${traitRows || '<tr><td colspan="3" style="text-align:center; color:var(--text-dim);">No mutant recessives or codominants detected between pair. Standard offspring will yield base steel lineage.</td></tr>'}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function autoPairCrucible() {
+      if (state.blades.length < 2) {
+        showToast("Need at least 2 blades in vault to auto-pair!");
+        return;
+      }
+      let bestPair = null;
+      let highestScore = -1;
+
+      for (let i = 0; i < state.blades.length; i++) {
+        for (let j = i + 1; j < state.blades.length; j++) {
+          const b1 = state.blades[i];
+          const b2 = state.blades[j];
+          let score = (b1.tier + b2.tier) * 10;
+
+          // Check recessive synergy
+          RECESSIVES.forEach(r => {
+            const s1 = b1.recessives[r.id];
+            const s2 = b2.recessives[r.id];
+            if (s1 !== 'none' && s2 !== 'none') score += 50;
+          });
+          CODOMS.forEach(c => {
+            if (b1.codoms[c.id] > 0 && b2.codoms[c.id] > 0) score += 40;
+          });
+
+          if (score > highestScore) {
+            highestScore = score;
+            bestPair = [b1.id, b2.id];
+          }
+        }
+      }
+
+      if (bestPair) {
+        document.getElementById('pair-yang-select').value = bestPair[0];
+        document.getElementById('pair-yin-select').value = bestPair[1];
+        calculatePunnettOdds();
+        audioManager.playForgeHammer();
+        showToast("Auto-pair optimizer matched highest genetic synergy!");
+      }
+    }
+
+    function igniteCrucibleFusion() {
+      if (state.charcoal < 10) {
+        showToast("Insufficient Charcoal! (Requires 10 俵)");
+        return;
+      }
+      if (state.salts < 2) {
+        showToast("Insufficient Quench Salts! (Requires 2 袋)");
+        return;
+      }
+
+      const emptySlot = state.crucibleSlots.find(s => s.status === 'empty');
+      if (!emptySlot) {
+        showToast("All 5 Crucible Chambers are currently occupied!");
+        return;
+      }
+
+      const yangId = document.getElementById('pair-yang-select').value;
+      const yinId = document.getElementById('pair-yin-select').value;
+      if (!yangId || !yinId || yangId === yinId) {
+        showToast("Select two distinct blades for the crucible!");
+        return;
+      }
+
+      const yang = state.blades.find(b => b.id === yangId);
+      const yin = state.blades.find(b => b.id === yinId);
+      if (!yang || !yin) return;
+
+      // Deduct materials
+      state.charcoal -= 10;
+      state.salts -= 2;
+
+      // Pre-calculate embryo
+      const embryo = simulateOffspring(yang, yin);
+
+      emptySlot.status = 'forging';
+      emptySlot.progress = 0;
+      emptySlot.maturationDays = 4;
+      emptySlot.yangId = yang.id;
+      emptySlot.yinId = yin.id;
+      emptySlot.candled = false;
+      emptySlot.embryo = embryo;
+
+      audioManager.playForgeHammer();
+      saveState();
+      updateLedgerUI();
+      renderCrucibleSlots();
+      showToast(`Crucible Chamber #${emptySlot.slotId + 1} ignited! 4-day cooling initiated.`);
+    }
+
+    function renderCrucibleSlots() {
+      const container = document.getElementById('crucible-slots-container');
+      if (!container) return;
+
+      container.innerHTML = state.crucibleSlots.map(slot => {
+        if (slot.status === 'empty') {
+          return `
+            <div class="crucible-slot-card">
+              <div>
+                <strong style="color:var(--text-muted);">Crucible Chamber #${slot.slotId + 1}</strong>
+                <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">STATUS: DORMANT</div>
+              </div>
+              <div style="text-align:center; padding:20px; color:var(--text-dim);">
+                Ready for Lineage Fusion Ingot Pairing
+              </div>
+              <div>
+                <button class="btn-sengoku iron sm full" onclick="switchTab('crucible')">Select Pair Above</button>
+              </div>
+            </div>
+          `;
+        }
+
+        const pct = Math.min(100, Math.round((slot.progress / slot.maturationDays) * 100));
+        const canHarvest = slot.progress >= slot.maturationDays;
+        const canCandle = slot.progress >= 2 && !slot.candled;
+
+        return `
+          <div class="crucible-slot-card in-fusion">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong style="color:var(--gold-bright);">Chamber #${slot.slotId + 1} [Day ${slot.progress}/${slot.maturationDays}]</strong>
+                <span class="badge-tier t${slot.embryo ? slot.embryo.tier : 1}">T${slot.embryo ? slot.embryo.tier : 1} Embryo</span>
+              </div>
+              <div class="forge-meter-bar">
+                <div class="forge-meter-fill" style="width: ${pct}%;"></div>
+              </div>
+              <div class="mono" style="font-size:11px; color:var(--text-muted);">
+                ${slot.candled ? '🔬 Spectrally Candled (Genetics Verified)' : (slot.progress >= 2 ? '⚠️ Inspection Available (Day 2+)' : 'Molten Ingot Settling...')}
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:6px; margin-top:10px;">
+              ${canCandle ? `<button class="btn-sengoku sm" onclick="candleSlot(${slot.slotId})">🔬 Day-2 Spectral Candling</button>` : ''}
+              ${canHarvest ? `<button class="btn-sengoku crimson full" onclick="harvestCrucibleSlot(${slot.slotId})">🌊 Final Quench & Forge Masterwork</button>` : `<button class="btn-sengoku iron sm full" onclick="cullSlot(${slot.slotId})">🛑 Extinguish Ingot (Cull Dud)</button>`}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function candleSlot(slotId) {
+      const slot = state.crucibleSlots[slotId];
+      if (!slot || slot.status !== 'forging') return;
+
+      slot.candled = true;
+      saveState();
+      renderCrucibleSlots();
+
+      const embryo = slot.embryo;
+      const modal = document.getElementById('modal-candling');
+      const body = document.getElementById('candling-content-body');
+
+      let traits = [];
+      RECESSIVES.forEach(r => {
+        if (embryo.recessives[r.id] === 'homo') traits.push(`✦ Visual ${r.name}`);
+        if (embryo.recessives[r.id] === 'het') traits.push(`Carrier Het ${r.name}`);
+      });
+      CODOMS.forEach(c => {
+        if (embryo.codoms[c.id] === 2) traits.push(`★ ${c.superName}`);
+        if (embryo.codoms[c.id] === 1) traits.push(`${c.baseName}`);
+      });
+      if (embryo.isGrail) traits.push(`🌟 GRAIL DETECTED: ${embryo.grailName}`);
+
+      body.innerHTML = `
+        <div style="background:#140e0a; border:1px solid #3d3125; border-radius:6px; padding:10px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between;">
+            <strong style="color:var(--gold-bright);">Projected Tier: Tier ${embryo.tier}</strong>
+            <span class="mono" style="color:#a3e635;">Cooling Phase: ${slot.progress}/${slot.maturationDays} Days</span>
+          </div>
+          <div style="margin:8px 0; font-size:12px;">
+            <strong>Detected Lineage Morphs:</strong><br>
+            <div style="margin-top:4px;">${traits.length > 0 ? traits.map(t => `<span class="badge-trait">${t}</span>`).join(' ') : 'Base wild-type iron crystallite.'}</div>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted);" class="mono">
+            Predicted Sharpness: ~${embryo.ivs.sharpness} | Hardness: ~${embryo.ivs.hardness} | Balance: ~${embryo.ivs.balance}
+          </div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-sengoku full sm" onclick="closeCandlingModal()">Proceed Cooling</button>
+          <button class="btn-sengoku crimson full sm" onclick="cullSlot(${slot.slotId}); closeCandlingModal();">Extinguish / Cull Dud</button>
+        </div>
+      `;
+      modal.classList.add('open');
+      audioManager.playForgeHammer();
+    }
+
+    function closeCandlingModal() {
+      document.getElementById('modal-candling').classList.remove('open');
+    }
+
+    function cullSlot(slotId) {
+      const slot = state.crucibleSlots[slotId];
+      if (!slot) return;
+      slot.status = 'empty';
+      slot.progress = 0;
+      slot.yangId = null;
+      slot.yinId = null;
+      slot.candled = false;
+      slot.embryo = null;
+      saveState();
+      renderCrucibleSlots();
+      showToast(`Chamber #${slotId + 1} extinguished. Slot freed.`);
+    }
+
+    function harvestCrucibleSlot(slotId) {
+      const slot = state.crucibleSlots[slotId];
+      if (!slot || slot.status !== 'forging' || slot.progress < slot.maturationDays) return;
+
+      const newBlade = slot.embryo;
+      state.blades.push(newBlade);
+
+      // Reset slot
+      slot.status = 'empty';
+      slot.progress = 0;
+      slot.yangId = null;
+      slot.yinId = null;
+      slot.candled = false;
+      slot.embryo = null;
+
+      audioManager.playSwordClash();
+      saveState();
+      renderCrucibleSlots();
+      renderVault();
+
+      // Check if newly harvested blade is a Grail Discovery!
+      if (newBlade.isGrail && !state.codexGrails[newBlade.grailId]) {
+        triggerGrailDiscoveryModal(newBlade);
+      } else {
+        showToast(`Masterwork Forged! Added [Tier ${newBlade.tier}] ${newBlade.name} to vault.`);
+      }
+    }
+
+    function triggerGrailDiscoveryModal(blade) {
+      state.codexGrails[blade.grailId] = {
+        discoveredDay: state.day,
+        customName: blade.grailName
+      };
+      state.gold += 50000; // Cash grant
+      saveState();
+      updateLedgerUI();
+
+      const modal = document.getElementById('modal-grail');
+      document.getElementById('grail-modal-title').textContent = blade.grailName;
+      document.getElementById('grail-modal-desc').textContent = blade.name + " — " + blade.origin;
+      document.getElementById('grail-custom-name-input').value = blade.grailName;
+      modal.classList.add('open');
+      audioManager.playVictory();
+    }
+
+    function closeGrailModal() {
+      const input = document.getElementById('grail-custom-name-input').value;
+      if (input && input.trim()) {
+        const lastBlade = state.blades[state.blades.length - 1];
+        if (lastBlade && lastBlade.isGrail) {
+          lastBlade.customName = input.trim();
+        }
+      }
+      document.getElementById('modal-grail').classList.remove('open');
+      saveState();
+      renderVault();
+      renderCodexView();
+    }
+
+    /* =========================================================
+       8. STREAMLINED DUEL THEATER (DOM COMBAT ENGINE)
+       ========================================================= */
+    let duelState = {
+      active: false,
+      speed: 1,
+      stance: 'agg', // 'agg', 'def', 'cnt'
+      p1: null,
+      p2: null,
+      turn: 0,
+      timerHandle: null
+    };
+
+    function initDuelView() {
+      const oppSel = document.getElementById('duel-opponent-select');
+      if (!oppSel) return;
+
+      oppSel.innerHTML = OPPONENTS.map(o => `
+        <option value="${o.id}">[T${o.tier}] ${o.name} (${o.title}) — Reward: ${o.reward} 両</option>
+      `).join('');
+
+      loadOpponentData();
+      refreshPlayerDuelCard();
+    }
+
+    function refreshPlayerDuelCard() {
+      const pBlade = state.blades.find(b => b.id === state.equippedBladeId) || state.blades[0];
+      if (!pBlade) return;
+
+      document.getElementById('combat-p1-name').textContent = pBlade.customName || pBlade.name;
+      document.getElementById('combat-p1-sub').textContent = `Tier ${pBlade.tier} ・ Durability: ${pBlade.durability}%`;
+      const tierBadge = document.getElementById('combat-p1-tier');
+      tierBadge.className = `badge-tier t${pBlade.tier}`;
+      tierBadge.textContent = `T${pBlade.tier}`;
+    }
+
+    function loadOpponentData() {
+      const selVal = document.getElementById('duel-opponent-select').value;
+      const opp = OPPONENTS.find(o => o.id === selVal) || OPPONENTS[0];
+
+      document.getElementById('combat-p2-name').textContent = opp.name;
+      document.getElementById('combat-p2-sub').textContent = `${opp.title} ・ T${opp.tier}`;
+      const tierBadge = document.getElementById('combat-p2-tier');
+      tierBadge.className = `badge-tier t${opp.tier}`;
+      tierBadge.textContent = `T${opp.tier}`;
+
+      document.getElementById('combat-p2-hp-text').textContent = `${opp.hp} / ${opp.hp}`;
+      document.getElementById('combat-p2-hp-fill').style.width = '100%';
+      document.getElementById('combat-p2-sta-text').textContent = '100 / 100';
+      document.getElementById('combat-p2-sta-fill').style.width = '100%';
+    }
+
+    function setStance(stanceKey) {
+      duelState.stance = stanceKey;
+      document.querySelectorAll('.btn-stance').forEach(b => b.classList.remove('active'));
+      const btn = document.getElementById(`stance-${stanceKey}`);
+      if (btn) btn.classList.add('active');
+      logCombat(`[Tactics] Shifted stance to ${stanceKey.toUpperCase()} Kamae.`);
+      audioManager.playForgeHammer();
+    }
+
+    function setDuelSpeed(spd) {
+      duelState.speed = spd;
+      document.getElementById('btn-speed-1').style.borderColor = spd === 1 ? 'var(--gold-bright)' : 'var(--border-hinoki)';
+      document.getElementById('btn-speed-3').style.borderColor = spd === 3 ? 'var(--gold-bright)' : 'var(--border-hinoki)';
+    }
+
+    function logCombat(text, cls = '') {
+      const logBox = document.getElementById('combat-telemetry-log');
+      if (!logBox) return;
+      const entry = document.createElement('div');
+      entry.className = `combat-log-entry mono ${cls}`;
+      entry.textContent = text;
+      logBox.appendChild(entry);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function startDuel() {
+      if (duelState.active) return;
+      const pBlade = state.blades.find(b => b.id === state.equippedBladeId) || state.blades[0];
+      if (!pBlade) {
+        showToast("No blade equipped for duel!");
+        return;
+      }
+      if (pBlade.durability <= 10) {
+        showToast("Equipped blade is battered! Hone blade before fighting.");
+        return;
+      }
+
+      const oppId = document.getElementById('duel-opponent-select').value;
+      const opp = OPPONENTS.find(o => o.id === oppId) || OPPONENTS[0];
+
+      // Calculate Player HP & Stats from Blade
+      const pMaxHp = 100 + (pBlade.tier * 25) + Math.round(pBlade.ivs.hardness * 1.5);
+      const pMaxSta = 100 + Math.round(pBlade.ivs.flexibility);
+
+      duelState.p1 = {
+        name: pBlade.customName || pBlade.name,
+        blade: pBlade,
+        hp: pMaxHp,
+        maxHp: pMaxHp,
+        sta: pMaxSta,
+        maxSta: pMaxSta,
+        attack: 15 + (pBlade.tier * 7) + Math.round(pBlade.ivs.sharpness * 0.4),
+        defense: 10 + Math.round(pBlade.ivs.hardness * 0.3),
+        balance: pBlade.ivs.balance,
+        critChance: (pBlade.ivs.resonance / 3) + (pBlade.isGrail ? 25 : 5)
+      };
+
+      duelState.p2 = {
+        name: opp.name,
+        tier: opp.tier,
+        reward: opp.reward,
+        hp: opp.hp,
+        maxHp: opp.hp,
+        sta: 100,
+        maxSta: 100,
+        attack: opp.attack,
+        defense: opp.defense,
+        balance: 50 + (opp.tier * 4),
+        critChance: 8 + (opp.tier * 2)
+      };
+
+      duelState.active = true;
+      duelState.turn = 1;
+      document.getElementById('btn-start-duel').disabled = true;
+      document.getElementById('combat-telemetry-log').innerHTML = '';
+      logCombat(`⚔️ [0.00s] Duel commences: ${duelState.p1.name} VS ${duelState.p2.name}!`);
+      audioManager.playSwordClash();
+
+      executeDuelTurn();
+    }
+
+    function executeDuelTurn() {
+      if (!duelState.active) return;
+
+      const p1 = duelState.p1;
+      const p2 = duelState.p2;
+      const stance = duelState.stance;
+
+      // 1. Player Turn Calculation
+      let pDmgMult = 1.0;
+      let pDefMult = 1.0;
+      let pParryBonus = 0;
+      let staCost = 12;
+
+      if (stance === 'agg') { pDmgMult = 1.35; staCost = 20; pDefMult = 0.85; }
+      if (stance === 'def') { pDmgMult = 0.75; staCost = 8; pDefMult = 1.4; pParryBonus = 25; }
+      if (stance === 'cnt') { pDmgMult = 0.9; staCost = 14; pParryBonus = 35; }
+
+      // Player strikes
+      const pCrit = (Math.random() * 100) < p1.critChance;
+      let pRawDmg = Math.max(6, Math.round((p1.attack * pDmgMult) - (p2.defense * 0.5)));
+      if (pCrit) pRawDmg = Math.round(pRawDmg * 1.8);
+
+      p2.hp = Math.max(0, p2.hp - pRawDmg);
+      p1.sta = Math.max(0, p1.sta - staCost);
+
+      triggerImpactFX('fighter-foe-box', pCrit ? 'shake' : 'hit-flash');
+      if (pCrit) {
+        audioManager.playCrit();
+        logCombat(`💥 CRITICAL STRIKE! ${p1.name} deals ${pRawDmg} damage to ${p2.name}!`, 'crit');
+      } else {
+        audioManager.playSwordClash();
+        logCombat(`🗡️ ${p1.name} strikes for ${pRawDmg} damage. (${p2.name} HP: ${p2.hp})`);
+      }
+
+      updateDuelUI();
+
+      if (p2.hp <= 0) {
+        endDuel(true);
+        return;
+      }
+
+      // 2. Opponent Turn (after delay or instant)
+      const turnDelay = duelState.speed === 3 ? 180 : 550;
+      duelState.timerHandle = setTimeout(() => {
+        if (!duelState.active) return;
+
+        // Check parry chance
+        const parryRoll = (Math.random() * 100);
+        const parryThreshold = (p1.balance / 4) + pParryBonus;
+
+        if (parryRoll < parryThreshold) {
+          // Player parries!
+          triggerImpactFX('fighter-player-box', 'parry-spark');
+          audioManager.playParry();
+          const counterDmg = Math.round(p1.attack * 0.85);
+          p2.hp = Math.max(0, p2.hp - counterDmg);
+          logCombat(`🛡️ PARRY! ${p1.name} deflects blade & counter-strikes for ${counterDmg}!`, 'parry');
+        } else {
+          // Opponent hits
+          const oCrit = (Math.random() * 100) < p2.critChance;
+          let oRawDmg = Math.max(5, Math.round(p2.attack - (p1.defense * pDefMult * 0.6)));
+          if (oCrit) oRawDmg = Math.round(oRawDmg * 1.6);
+
+          if (state.godInvincible) oRawDmg = 0;
+
+          p1.hp = Math.max(0, p1.hp - oRawDmg);
+          triggerImpactFX('fighter-player-box', oCrit ? 'shake' : 'hit-flash');
+          if (oCrit) {
+            audioManager.playCrit();
+            logCombat(`⚠️ CRITICAL! ${p2.name} lands brutal blow dealing ${oRawDmg} dmg!`, 'crit');
+          } else {
+            audioManager.playSwordClash();
+            logCombat(`⚔️ ${p2.name} strikes back dealing ${oRawDmg} damage.`);
+          }
+        }
+
+        updateDuelUI();
+
+        if (p1.hp <= 0) {
+          endDuel(false);
+          return;
+        }
+
+        // Stamina recover
+        p1.sta = Math.min(p1.maxSta, p1.sta + 8);
+        p2.sta = Math.min(p2.maxSta, p2.sta + 8);
+        duelState.turn++;
+
+        duelState.timerHandle = setTimeout(executeDuelTurn, turnDelay);
+      }, turnDelay);
+    }
+
+    function triggerImpactFX(boxId, cls) {
+      const el = document.getElementById(boxId);
+      if (!el) return;
+      el.classList.remove('shake', 'hit-flash', 'parry-spark');
+      void el.offsetWidth; // Force CSS reflow
+      el.classList.add(cls);
+      setTimeout(() => el.classList.remove(cls), 300);
+    }
+
+    function updateDuelUI() {
+      const p1 = duelState.p1;
+      const p2 = duelState.p2;
+      if (!p1 || !p2) return;
+
+      const p1HpPct = Math.max(0, Math.round((p1.hp / p1.maxHp) * 100));
+      const p2HpPct = Math.max(0, Math.round((p2.hp / p2.maxHp) * 100));
+      const p1StaPct = Math.max(0, Math.round((p1.sta / p1.maxSta) * 100));
+      const p2StaPct = Math.max(0, Math.round((p2.sta / p2.maxSta) * 100));
+
+      document.getElementById('combat-p1-hp-text').textContent = `${p1.hp} / ${p1.maxHp}`;
+      document.getElementById('combat-p1-hp-fill').style.width = `${p1HpPct}%`;
+      document.getElementById('combat-p1-sta-text').textContent = `${p1.sta} / ${p1.maxSta}`;
+      document.getElementById('combat-p1-sta-fill').style.width = `${p1StaPct}%`;
+
+      document.getElementById('combat-p2-hp-text').textContent = `${p2.hp} / ${p2.maxHp}`;
+      document.getElementById('combat-p2-hp-fill').style.width = `${p2HpPct}%`;
+      document.getElementById('combat-p2-sta-text').textContent = `${p2.sta} / ${p2.maxSta}`;
+      document.getElementById('combat-p2-sta-fill').style.width = `${p2StaPct}%`;
+    }
+
+    function resolveDuelInstant() {
+      if (!duelState.active) {
+        startDuel();
+      }
+      clearTimeout(duelState.timerHandle);
+      // Run internal combat loop to immediate zero HP
+      while (duelState.active && duelState.p1.hp > 0 && duelState.p2.hp > 0) {
+        const p1 = duelState.p1;
+        const p2 = duelState.p2;
+
+        const pDmg = Math.max(10, Math.round(p1.attack - (p2.defense * 0.4)));
+        p2.hp = Math.max(0, p2.hp - pDmg);
+        if (p2.hp <= 0) break;
+
+        const oDmg = state.godInvincible ? 0 : Math.max(8, Math.round(p2.attack - (p1.defense * 0.5)));
+        p1.hp = Math.max(0, p1.hp - oDmg);
+      }
+      updateDuelUI();
+      if (duelState.p2.hp <= 0) endDuel(true);
+      else endDuel(false);
+    }
+
+    function endDuel(won) {
+      duelState.active = false;
+      clearTimeout(duelState.timerHandle);
+      document.getElementById('btn-start-duel').disabled = false;
+
+      const pBlade = duelState.p1.blade;
+      if (won) {
+        const reward = duelState.p2.reward;
+        state.gold += reward;
+        pBlade.wins++;
+        pBlade.durability = Math.max(5, pBlade.durability - 8);
+        audioManager.playVictory();
+        logCombat(`🏆 VICTORY! You defeated ${duelState.p2.name} and claimed ${reward.toLocaleString()} 両 bounty!`, 'victory');
+        showToast(`Dojo Victory! Claimed +${reward.toLocaleString()} 両!`);
+      } else {
+        pBlade.losses++;
+        pBlade.durability = Math.max(5, pBlade.durability - 15);
+        logCombat(`💀 DEFEAT! ${duelState.p1.name}'s bearer was disarmed. Blade sustained heavy wear.`, 'crit');
+        showToast("Defeat in dojo! Hone your blade and adjust stance.");
+      }
+
+      saveState();
+      updateLedgerUI();
+      renderVault();
+    }
+
+    /* =========================================================
+       9. 5-LANE PLAYER CONSIGNMENT AUCTION HOUSE
+       ========================================================= */
+    function populateAuctionConsignSelector() {
+      const sel = document.getElementById('auction-consign-select');
+      if (!sel) return;
+      sel.innerHTML = `<option value="">-- Choose Blade from Vault --</option>` +
+        state.blades.map(b => `<option value="${b.id}">[T${b.tier}] ${b.customName || b.name} (Val: ${calculateBladeValue(b).toLocaleString()} 両)</option>`).join('');
+    }
+
+    function consignBladeToAuction() {
+      const sel = document.getElementById('auction-consign-select');
+      const bladeId = sel.value;
+      if (!bladeId) {
+        showToast("Select a blade to consign to auction!");
+        return;
+      }
+      if (state.blades.length <= 1) {
+        showToast("Cannot consign your last remaining blade!");
+        return;
+      }
+
+      const emptyLane = state.auctionLanes.find(l => !l.active);
+      if (!emptyLane) {
+        showToast("All 5 auction lanes are currently busy!");
+        return;
+      }
+
+      const bIdx = state.blades.findIndex(b => b.id === bladeId);
+      const blade = state.blades[bIdx];
+
+      // Remove from vault and transfer to auction lane
+      state.blades.splice(bIdx, 1);
+      if (state.equippedBladeId === bladeId) {
+        state.equippedBladeId = state.blades[0].id;
+        state.blades[0].equipped = true;
+      }
+
+      const baseVal = calculateBladeValue(blade);
+      emptyLane.active = true;
+      emptyLane.blade = blade;
+      emptyLane.currentBid = Math.round(baseVal * 0.65);
+      emptyLane.leaderSyndicate = SYNDICATES[Math.floor(Math.random() * SYNDICATES.length)].name;
+      emptyLane.timer = 16; // 16 seconds auction
+      emptyLane.polished = false;
+
+      audioManager.playGavel();
+      saveState();
+      renderAuctionView();
+      populateAuctionConsignSelector();
+      renderVault();
+      showToast(`Consigned [${blade.name}] to Auction Lane #${emptyLane.laneId + 1}!`);
+    }
+
+    function polishAuctionItem(laneId) {
+      const lane = state.auctionLanes[laneId];
+      if (!lane || !lane.active || lane.polished) return;
+
+      if (state.oil < 1 && state.gold < 500) {
+        showToast("Requires 1 bottle of Choji Oil or 500 両 for presentation polish!");
+        return;
+      }
+
+      if (state.oil >= 1) state.oil -= 1;
+      else state.gold -= 500;
+
+      lane.polished = true;
+      // Boost current bid by +66%
+      lane.currentBid = Math.round(lane.currentBid * 1.66);
+      lane.timer += 3; // Add hype duration
+
+      audioManager.playForgeHammer();
+      saveState();
+      updateLedgerUI();
+      renderAuctionView();
+      showToast(`Presentation Polish applied! Bidding hype boosted +66%!`);
+    }
+
+    function renderAuctionView() {
+      const container = document.getElementById('auction-lanes-container');
+      if (!container) return;
+
+      container.innerHTML = state.auctionLanes.map(lane => {
+        if (!lane.active) {
+          return `
+            <div class="lane-card">
+              <div>
+                <strong style="color:var(--text-muted);">Auction Floor Lane #${lane.laneId + 1}</strong>
+                <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">STATUS: VACANT</div>
+              </div>
+              <div style="text-align:center; padding:24px; color:var(--text-dim);">
+                Awaiting player blade consignment.
+              </div>
+              <div class="mono" style="font-size:11px; color:var(--text-dim); text-align:center;">
+                Syndicates ready to bid.
+              </div>
+            </div>
+          `;
+        }
+
+        const b = lane.blade;
+        const appraisal = calculateBladeValue(b);
+
+        return `
+          <div class="lane-card active-lane">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="badge-tier t${b.tier}">Lane #${lane.laneId + 1} ・ T${b.tier}</span>
+                <span class="mono" style="color:${lane.timer <= 3 ? '#ef4444' : '#fbbf24'}; font-weight:800; font-size:13px;">
+                  ⏱️ ${lane.timer}s
+                </span>
+              </div>
+              <div style="font-weight:700; color:#fff; font-size:15px; margin-top:4px;">
+                ${b.customName || b.name}
+              </div>
+              <div class="mono" style="font-size:11px; color:var(--text-muted);">
+                Appraisal: ${appraisal.toLocaleString()} 両 ${lane.polished ? '<span style="color:#fef08a;">[✨ POLISHED +66%]</span>' : ''}
+              </div>
+
+              <div style="margin-top:10px; background:#110c08; border:1px solid #3d3125; border-radius:6px; padding:8px;">
+                <div style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Current High Bid:</div>
+                <div class="mono" style="font-size:18px; font-weight:900; color:var(--gold-bright);">
+                  ${lane.currentBid.toLocaleString()} 両
+                </div>
+                <div class="syndicate-pill mono">
+                  Leading: <strong>${lane.leaderSyndicate}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:10px;">
+              ${!lane.polished ? `<button class="btn-sengoku full sm" onclick="polishAuctionItem(${lane.laneId})">✨ Apply Silk Polish (+66% Hype)</button>` : '<div class="mono" style="font-size:11px; color:#86efac; text-align:center;">✓ Maximum Presentation Polish Applied</div>'}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Auction Tick Loop (runs every 1 second)
+    setInterval(() => {
+      let changed = false;
+      state.auctionLanes.forEach(lane => {
+        if (!lane.active) return;
+        lane.timer -= 1;
+        changed = true;
+
+        // Dynamic syndicate bidding
+        const appraisal = calculateBladeValue(lane.blade) * (lane.polished ? 1.66 : 1.0);
+        if (lane.currentBid < appraisal * 1.4 && Math.random() < 0.65) {
+          const bidder = SYNDICATES[Math.floor(Math.random() * SYNDICATES.length)];
+          const bidJump = Math.round(appraisal * (0.05 + Math.random() * 0.12));
+          lane.currentBid += bidJump;
+          lane.leaderSyndicate = bidder.name;
+
+          // Anti-Snipe feature: If bid placed in final 1s, add +1s
+          if (lane.timer <= 1) {
+            lane.timer += 1;
+            showToast(`[Lane #${lane.laneId + 1}] Anti-Snipe triggered! +1s extended!`);
+          }
+        }
+
+        // Sale Complete
+        if (lane.timer <= 0) {
+          lane.active = false;
+          const brokerFee = Math.round(lane.currentBid * 0.03);
+          const netPayout = lane.currentBid - brokerFee;
+          state.gold += netPayout;
+          audioManager.playGavel();
+          showToast(`槌音! Lane #${lane.laneId + 1} SOLD to ${lane.leaderSyndicate} for ${lane.currentBid.toLocaleString()} 両! (Net: +${netPayout.toLocaleString()} 両)`);
+          lane.blade = null;
+        }
+      });
+
+      if (changed) {
+        saveState();
+        updateLedgerUI();
+        if (document.getElementById('view-auction').classList.contains('active')) {
+          renderAuctionView();
+        }
+      }
+    }, 1000);
+
+    /* =========================================================
+       10. 10-SECOND DISTRESSED CLEARANCE TAB
+       ========================================================= */
+    function generateClearanceStock() {
+      const items = [];
+      for (let i = 0; i < 4; i++) {
+        const randTier = Math.floor(Math.random() * 5) + 1; // T1 to T5
+        const blade = createBladeObject({ tier: randTier, origin: "Battlefield Salvage Roost" });
+        const retail = calculateBladeValue(blade);
+        // Discount 70% to 99%
+        const discountPct = Math.floor(Math.random() * 29) + 70; // 70 to 98%
+        const salePrice = Math.max(45, Math.round(retail * (1 - (discountPct / 100))));
+        items.push({ blade, retail, discountPct, salePrice, bought: false });
+      }
+      state.clearanceBlades = items;
+      state.clearanceTimer = 10.0;
+    }
+
+    function renderClearanceView() {
+      const container = document.getElementById('clearance-items-container');
+      if (!container) return;
+
+      if (!state.clearanceBlades || state.clearanceBlades.length === 0) {
+        generateClearanceStock();
+      }
+
+      container.innerHTML = state.clearanceBlades.map((item, idx) => {
+        if (item.bought) {
+          return `
+            <div class="blade-card" style="opacity:0.4; text-align:center; padding:30px;">
+              <strong style="color:#ef4444;">SOLD OUT / ACQUIRED</strong>
+            </div>
+          `;
+        }
+        const b = item.blade;
+        return `
+          <div class="blade-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="badge-tier t${b.tier}">Tier ${b.tier}</span>
+              <span class="mono" style="background:#dc2626; color:#fff; font-size:11px; font-weight:800; padding:2px 6px; border-radius:4px;">
+                -${item.discountPct}% OFF
+              </span>
+            </div>
+            <div class="blade-name-title" style="margin-top:6px;">${b.name}</div>
+            <div class="mono" style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+              Appraisal: <s>${item.retail.toLocaleString()} 両</s>
+            </div>
+            <div class="mono" style="font-size:18px; font-weight:900; color:#86efac; margin-bottom:10px;">
+              ${item.salePrice.toLocaleString()} 両
+            </div>
+            <button class="btn-sengoku crimson full sm" onclick="buyClearanceBlade(${idx})">
+              ⚡ Snatch Salvage
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function buyClearanceBlade(idx) {
+      const item = state.clearanceBlades[idx];
+      if (!item || item.bought) return;
+      if (state.gold < item.salePrice) {
+        showToast("Insufficient Ryo to claim this clearance blade!");
+        return;
+      }
+      state.gold -= item.salePrice;
+      item.bought = true;
+      state.blades.push(item.blade);
+
+      audioManager.playCash();
+      saveState();
+      updateLedgerUI();
+      renderClearanceView();
+      renderVault();
+      showToast(`Snagged clearance [${item.blade.name}] at ${item.discountPct}% discount!`);
+    }
+
+    // 10-Second clearance tick
+    setInterval(() => {
+      state.clearanceTimer = (parseFloat(state.clearanceTimer) - 0.1).toFixed(1);
+      const timerDisplay = document.getElementById('clearance-timer-display');
+      if (timerDisplay) timerDisplay.textContent = `${Math.max(0, state.clearanceTimer)}s`;
+
+      if (state.clearanceTimer <= 0) {
+        generateClearanceStock();
+        if (document.getElementById('view-clearance').classList.contains('active')) {
+          renderClearanceView();
+          audioManager.playForgeHammer();
+        }
+      }
+    }, 100);
+
+    /* =========================================================
+       11. GLOBAL MYSTERY TRADE (WONDER TRADE)
+       ========================================================= */
+    function populateWonderSelector() {
+      const sel = document.getElementById('wonder-blade-select');
+      if (!sel) return;
+      sel.innerHTML = `<option value="">-- Choose Katana to Dispatch --</option>` +
+        state.blades.map(b => `<option value="${b.id}">[T${b.tier}] ${b.customName || b.name} (Val: ${calculateBladeValue(b).toLocaleString()} 両)</option>`).join('');
+    }
+
+    function executeWonderTrade() {
+      const sel = document.getElementById('wonder-blade-select');
+      const bladeId = sel.value;
+      if (!bladeId) {
+        showToast("Select a katana to dispatch into the international exchange!");
+        return;
+      }
+      if (state.blades.length <= 1) {
+        showToast("Cannot wonder-trade your last remaining katana!");
+        return;
+      }
+
+      const idx = state.blades.findIndex(b => b.id === bladeId);
+      const dispatchedBlade = state.blades[idx];
+      state.blades.splice(idx, 1);
+      if (state.equippedBladeId === bladeId) {
+        state.equippedBladeId = state.blades[0].id;
+        state.blades[0].equipped = true;
+      }
+
+      const btn = document.getElementById('btn-dispatch-wonder');
+      const sweep = document.getElementById('radar-sweep');
+      const resBox = document.getElementById('wonder-result-box');
+      btn.disabled = true;
+      sweep.style.display = 'block';
+      resBox.style.display = 'none';
+
+      audioManager.playRadarPing();
+
+      setTimeout(() => {
+        sweep.style.display = 'none';
+        btn.disabled = false;
+
+        // Generate inbound wonder blade
+        const isJackpot = Math.random() < 0.08; // 8% jackpot roll
+        const foreignOrigins = [
+          "Nanban Galley Tribute (Portugal)",
+          "Ming Imperial Armory Envoy (China)",
+          "Ezo Northern Anvil (Ainu Lands)",
+          "Ryukyu Kingdom Jade Forge (Okinawa)",
+          "Satsuma Smuggler Grotto",
+          "Tsushima Strait Corsair Kiln"
+        ];
+        const chosenOrigin = foreignOrigins[Math.floor(Math.random() * foreignOrigins.length)];
+
+        let inboundTier = isJackpot ? (Math.floor(Math.random() * 3) + 8) : (Math.floor(Math.random() * 4) + 2); // Jackpot: T8-T10, Normal: T2-T5
+        const inboundBlade = createBladeObject({
+          tier: inboundTier,
+          origin: chosenOrigin,
+          name: isJackpot ? "Apex Foreign Dragon Masterwork" : "Foreign Trade Ingot"
+        });
+
+        if (isJackpot) {
+          inboundBlade.recessives.celestial_tamahagane = 'homo';
+          inboundBlade.ivs = { sharpness: 98, hardness: 95, balance: 99, flexibility: 96, resonance: 97 };
+          audioManager.playVictory();
+        } else {
+          audioManager.playSwordClash();
+        }
+
+        state.blades.push(inboundBlade);
+        saveState();
+        renderVault();
+        populateWonderSelector();
+
+        resBox.style.display = 'block';
+        resBox.innerHTML = `
+          <strong style="color:${isJackpot ? '#f472b6' : 'var(--gold-bright)'}; font-size:15px;">
+            ${isJackpot ? '🌟 8% JACKPOT APEX ROLL RECEIVED!' : '🚢 Foreign Mystery Exchange Complete!'}
+          </strong>
+          <div style="margin-top:6px; font-size:13px; color:#fff;">
+            Received: <strong>[Tier ${inboundBlade.tier}] ${inboundBlade.name}</strong>
+          </div>
+          <div class="mono" style="font-size:11px; color:var(--text-muted);">
+            Origin: ${inboundBlade.origin} ・ Valuation: ${calculateBladeValue(inboundBlade).toLocaleString()} 両
+          </div>
+        `;
+        showToast(isJackpot ? "🌟 JACKPOT! Received an Apex International Blade!" : "Wonder Trade completed successfully!");
+      }, 1900);
+    }
+
+    /* =========================================================
+       12. CODEX & GRAILS VIEW
+       ========================================================= */
+    function renderCodexView() {
+      const container = document.getElementById('codex-grails-container');
+      const completionStat = document.getElementById('codex-completion-stat');
+      const tierListContainer = document.getElementById('codex-tier-list');
+      if (!container) return;
+
+      const discoveredCount = Object.keys(state.codexGrails).length;
+      completionStat.textContent = `Discovered: ${discoveredCount} / ${GRAILS.length} World's First Grails`;
+
+      container.innerHTML = GRAILS.map(g => {
+        const discovered = !!state.codexGrails[g.id];
+        return `
+          <div style="background:#15100b; border:1px solid ${discovered ? '#ec4899' : 'var(--border-hinoki)'}; border-radius:8px; padding:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong style="color:${discovered ? '#f472b6' : 'var(--text-muted)'}; font-size:15px;">
+                ${discovered ? '🌟 ' + g.name : '??? Locked Sacred Grail'}
+              </strong>
+              <span class="badge-trait ${discovered ? 'grail' : ''}">${discovered ? 'DISCOVERED' : 'UNDISCOVERED'}</span>
+            </div>
+            <div style="font-size:12px; color:var(--text-muted); margin:6px 0;">
+              ${g.desc}
+            </div>
+            <div class="mono" style="font-size:11px; color:${discovered ? 'var(--gold-bright)' : 'var(--text-dim)'}; border-top:1px dashed #2a2016; padding-top:4px;">
+              Gene Blueprint: ${g.reqDesc}
+            </div>
+            ${discovered ? `<div class="mono" style="font-size:11px; color:#86efac; margin-top:4px;">Discovered on Day ${state.codexGrails[g.id].discoveredDay} (${state.codexGrails[g.id].customName})</div>` : ''}
+          </div>
+        `;
+      }).join('');
+
+      tierListContainer.innerHTML = TIERS.map(t => `
+        <div>
+          <span class="badge-tier t${t.level}" style="margin-right:6px;">Tier ${t.level}</span>
+          <strong>${t.name}</strong> (${t.role}) — Base Value: ${t.baseValue.toLocaleString()} 両 | Base Weapon: ${t.baseWeapon}
+        </div>
+      `).join('');
+    }
+
+    /* =========================================================
+       13. DAY TICK, CONDITIONING & LOGISTICS
+       ========================================================= */
+    function advanceDay(days = 1) {
+      for (let d = 0; d < days; d++) {
+        state.day += 1;
+
+        // Daily logistics consumption
+        const charcoalCost = Math.max(2, state.blades.length * 1);
+        const wageCost = 50 + (state.blades.length * 8);
+
+        state.charcoal = Math.max(0, state.charcoal - charcoalCost);
+        state.gold = Math.max(0, state.gold - wageCost);
+
+        // Advance crucible cooling
+        state.crucibleSlots.forEach(slot => {
+          if (slot.status === 'forging') {
+            slot.progress = Math.min(slot.maturationDays, slot.progress + 1);
+          }
+        });
+
+        // Natural rest recovery for blades
+        state.blades.forEach(b => {
+          b.fatigue = Math.max(0, b.fatigue - 15);
+        });
+      }
+
+      audioManager.playForgeHammer();
+      saveState();
+      updateLedgerUI();
+      renderVault();
+      renderCrucibleSlots();
+      showToast(`Dawn arrived. Advanced +${days} Day(s). Consumed daily charcoal and wages.`);
+    }
+
+    /* =========================================================
+       14. GOD MODE DEVELOPER DRAWER & CHEATS
+       ========================================================= */
+    function toggleDevDrawer() {
+      const drawer = document.getElementById('dev-drawer');
+      drawer.classList.toggle('open');
+      audioManager.playForgeHammer();
+    }
+
+    function devCheat(type) {
+      if (type === 'gold50k') state.gold += 50000;
+      if (type === 'gold500k') state.gold += 500000;
+      if (type === 'broke') state.gold = 50;
+      if (type === 'supplies') { state.charcoal += 500; state.salts += 500; state.oil += 100; }
+      if (type === 'matureAll') {
+        state.crucibleSlots.forEach(s => {
+          if (s.status === 'forging') s.progress = s.maturationDays;
+        });
+        renderCrucibleSlots();
+      }
+      if (type === 'spawnApex') {
+        const apex = createBladeObject({ tier: 10, name: "Muramasa Blood-Apocalypse", origin: "Divine Dev Anvil" });
+        state.blades.push(apex);
+        renderVault();
+      }
+      if (type === 'spawnGrail') {
+        const grail = createBladeObject({
+          tier: 8,
+          name: "Kusanagi Heaven-Cleaver",
+          recessives: { celestial_tamahagane: 'homo' },
+          codoms: { titanium_carbide: 2 }
+        });
+        state.blades.push(grail);
+        triggerGrailDiscoveryModal(grail);
+        renderVault();
+      }
+      if (type === 'maxIVs') {
+        state.blades.forEach(b => {
+          b.ivs = { sharpness: 100, hardness: 100, balance: 100, flexibility: 100, resonance: 100 };
+        });
+        renderVault();
+      }
+      if (type === 'winBattle') {
+        if (duelState.active) {
+          duelState.p2.hp = 0;
+          endDuel(true);
+        } else {
+          showToast("Start a duel first to trigger instant win!");
+        }
+      }
+      if (type === 'godMode') {
+        state.godInvincible = !state.godInvincible;
+        showToast(state.godInvincible ? "God Mode Invincibility: ON" : "God Mode Invincibility: OFF");
+      }
+
+      audioManager.playCash();
+      saveState();
+      updateLedgerUI();
+      showToast(`Dev Action [${type}] Executed!`);
+    }
+
+    /* =========================================================
+       15. BACKUP & JSON RESTORE MODAL
+       ========================================================= */
+    function openBackupModal() {
+      const area = document.getElementById('backup-json-area');
+      area.value = JSON.stringify(state, null, 2);
+      document.getElementById('modal-backup').classList.add('open');
+      audioManager.playForgeHammer();
+    }
+
+    function closeBackupModal() {
+      document.getElementById('modal-backup').classList.remove('open');
+    }
+
+    function copyBackupToClipboard() {
+      const area = document.getElementById('backup-json-area');
+      area.select();
+      document.execCommand('copy');
+      showToast("Ledger JSON copied to clipboard!");
+    }
+
+    function restoreBackupFromJSON() {
+      const area = document.getElementById('backup-json-area');
+      try {
+        const parsed = JSON.parse(area.value);
+        if (!parsed.blades || !Array.isArray(parsed.blades)) {
+          throw new Error("Invalid ledger schema.");
+        }
+        state = parsed;
+        saveState();
+        updateLedgerUI();
+        renderVault();
+        renderCrucibleSlots();
+        renderCodexView();
+        closeBackupModal();
+        audioManager.playVictory();
+        showToast("Smithy ledger successfully restored from JSON!");
+      } catch (e) {
+        showToast("Error parsing JSON backup! Check format.");
+      }
+    }
+
+    function resetFactoryConfirm() {
+      if (confirm("Reset entire smithy state to Day 1 starter kit?")) {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+      }
+    }
+
+    /* =========================================================
+       16. INITIALIZATION ON WINDOW LOAD
+       ========================================================= */
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      updateLedgerUI();
+      renderVault();
+      renderCrucibleSlots();
+      renderClearanceView();
+      renderCodexView();
+    });
+  </script>
+</body>
+</html>
